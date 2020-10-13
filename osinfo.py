@@ -267,6 +267,13 @@ class OsInfo(object):
         if self.__screen_resolution:
             return self.__screen_resolution
 
+        if subprocess.getoutput('xrandr ; echo $?')[-1] == '0':
+            resolution = subprocess.getoutput(
+                "xrandr | grep current | awk -F , '{print $2}'")
+            self.__screen_resolution = resolution.replace(' current ', '').replace(' x ', 'x')
+
+        return self.__screen_resolution
+
     def get_uptime(self):
         if self.__uptime:
             return self.__uptime
@@ -327,3 +334,4 @@ if __name__ == '__main__':
     print('               swap:', oi.get_swap())
     print('          swap-used:', oi.get_swap_used())
     print('          swap-free:', oi.get_swap_free())
+    print('  screen-resolution:', oi.get_screen_resolution())
