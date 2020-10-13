@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-#
-# disk.py: ListDisks() = List of system disks
-#
-# Author: Alisson, github.com/w-a-gomes
-# License: GPL
-# https://github.com/w-a-gomes/utility
+# https://github.com/w-a-gomes/osutility
 import subprocess
 import disk
 

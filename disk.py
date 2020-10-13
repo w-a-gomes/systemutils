@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-#
-# disk.py: Disk() = Disk information utility
-#
-# Author: Alisson, github.com/w-a-gomes
-# License: GPL
-# https://github.com/w-a-gomes/utility
+# https://github.com/w-a-gomes/osutility
 import subprocess
 
 
@@ -54,9 +49,9 @@ class Disk(object):
         """
         if self.__parent_kernel_name:
             return self.__parent_kernel_name
-        else:
-            self.__parent_kernel_name = self.__lsblk_parent_kernel_name(self.__mount_point)
-            return self.__parent_kernel_name
+
+        self.__parent_kernel_name = self.__lsblk_parent_kernel_name(self.__mount_point)
+        return self.__parent_kernel_name
 
     def get_kernel_name(self) -> str:
         """Get the kernel name of the disk
@@ -67,9 +62,9 @@ class Disk(object):
         """
         if self.__kernel_name:
             return self.__kernel_name
-        else:
-            self.__kernel_name = self.__lsblk_kernel_name(self.__mount_point)
-            return self.__kernel_name
+
+        self.__kernel_name = self.__lsblk_kernel_name(self.__mount_point)
+        return self.__kernel_name
 
     def get_mount_point(self) -> str:
         """Get the disk mount point
@@ -89,9 +84,9 @@ class Disk(object):
         """
         if self.__system_file_type:
             return self.__system_file_type
-        else:
-            self.__system_file_type = self.__df_system_file_type(self.__system_file_name)
-            return self.__system_file_type
+
+        self.__system_file_type = self.__df_system_file_type(self.__system_file_name)
+        return self.__system_file_type
 
     def get_partition_type(self) -> str:
         """Get the partition type
@@ -103,9 +98,9 @@ class Disk(object):
         """
         if self.__partition_type:
             return self.__partition_type
-        else:
-            self.__partition_type = self.__lsblk_partition_type(self.__mount_point)
-            return self.__partition_type
+
+        self.__partition_type = self.__lsblk_partition_type(self.__mount_point)
+        return self.__partition_type
 
     def get_label(self) -> str:
         """Get the disk label
@@ -116,9 +111,9 @@ class Disk(object):
         """
         if self.__label:
             return self.__label
-        else:
-            self.__label = self.__lsblk_label(self.__mount_point)
-            return self.__label
+
+        self.__label = self.__lsblk_label(self.__mount_point)
+        return self.__label
 
     def get_size(self) -> str:
         """Get the disk size
@@ -129,9 +124,9 @@ class Disk(object):
         """
         if self.__size:
             return self.__size
-        else:
-            self.__size = self.__df_size(self.__system_file_name)
-            return self.__size
+
+        self.__size = self.__df_size(self.__system_file_name)
+        return self.__size
 
     def get_used(self) -> str:
         """Get the amount of disk usage
@@ -142,9 +137,9 @@ class Disk(object):
         """
         if self.__used:
             return self.__used
-        else:
-            self.__used = self.__df_used(self.__system_file_name)
-            return self.__used
+
+        self.__used = self.__df_used(self.__system_file_name)
+        return self.__used
 
     def get_free(self) -> str:
         """Get the free size for disk use
@@ -155,9 +150,9 @@ class Disk(object):
         """
         if self.__free:
             return self.__free
-        else:
-            self.__free = self.__df_free(self.__system_file_name)
-            return self.__free
+
+        self.__free = self.__df_free(self.__system_file_name)
+        return self.__free
 
     def get_percentage_used(self) -> str:
         """Get the size in percent of disk usage
@@ -168,9 +163,9 @@ class Disk(object):
         """
         if self.__percentage_used:
             return self.__percentage_used
-        else:
-            self.__percentage_used = self.__df_percentage_used(self.__system_file_name)
-            return self.__percentage_used
+
+        self.__percentage_used = self.__df_percentage_used(self.__system_file_name)
+        return self.__percentage_used
 
     def get_disk_identify(self) -> str:
         """Obtain a useful disk ID
@@ -181,9 +176,9 @@ class Disk(object):
         """
         if self.__disk_identify:
             return self.__disk_identify
-        else:
-            self.__disk_identify = self.__hck_disk_identify(self.__system_file_name)
-            return self.__disk_identify
+
+        self.__disk_identify = self.__hck_disk_identify(self.__system_file_name)
+        return self.__disk_identify
 
     # __Setters__
     # Nope! :p

@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-#
-# file.py: File() = File information utility
-#
-# Author: Alisson, github.com/w-a-gomes
-# License: GPL
-# https://github.com/w-a-gomes/utility
+# https://github.com/w-a-gomes/osutility
 import re
 import subprocess
 import threading
@@ -37,9 +32,9 @@ class File(object):
         """
         if self.__file:
             return self.__file
-        else:
-            self.__file = self.__extract_file(self.__file_url)
-            return self.__file
+
+        self.__file = self.__extract_file(self.__file_url)
+        return self.__file
 
     def get_path(self) -> str:
         """Get the file path
@@ -50,11 +45,11 @@ class File(object):
         """
         if self.__path:
             return self.__path
-        else:
-            if not self.__file:
-                self.__file = self.__extract_file(self.__file_url)
-            self.__path = self.__extract_path(self.__file)
-            return self.__path
+
+        if not self.__file:
+            self.__file = self.__extract_file(self.__file_url)
+        self.__path = self.__extract_path(self.__file)
+        return self.__path
 
     def get_name(self) -> str:
         """Get the file name
@@ -65,12 +60,12 @@ class File(object):
         """
         if self.__name:
             return self.__name
-        else:
-            if not self.__file:
-                self.__file = self.__extract_file(self.__file_url)
 
-            self.__name = self.__extract_name(self.__file)
-            return self.__name
+        if not self.__file:
+            self.__file = self.__extract_file(self.__file_url)
+
+        self.__name = self.__extract_name(self.__file)
+        return self.__name
 
     def get_extension(self) -> str:
         """Get the file extension
@@ -81,12 +76,12 @@ class File(object):
         """
         if self.__extension:
             return self.__extension
-        else:
-            if not self.__file:
-                self.__file = self.__extract_file(self.__file_url)
 
-            self.__extension = self.__extract_extension(self.__file)
-            return self.__extension
+        if not self.__file:
+            self.__file = self.__extract_file(self.__file_url)
+
+        self.__extension = self.__extract_extension(self.__file)
+        return self.__extension
 
     def get_mime(self) -> str:
         """Get the file's mime type
@@ -97,12 +92,12 @@ class File(object):
         """
         if self.__mime:
             return self.__mime
-        else:
-            if not self.__file:
-                self.__file = self.__extract_file(self.__file_url)
 
-            self.__mime = self.__extract_mime(self.__file)
-            return self.__mime
+        if not self.__file:
+            self.__file = self.__extract_file(self.__file_url)
+
+        self.__mime = self.__extract_mime(self.__file)
+        return self.__mime
 
     def get_size(self) -> str:
         """Get the file size
@@ -115,13 +110,13 @@ class File(object):
         """
         if self.__size:
             return self.__size
-        else:
-            if not self.__file:
-                self.__file = self.__extract_file(self.__file_url)
 
-            self.__size = 'calculating'
-            self.__extract_size(self.__file)
-            return self.__size
+        if not self.__file:
+            self.__file = self.__extract_file(self.__file_url)
+
+        self.__size = 'calculating'
+        self.__extract_size(self.__file)
+        return self.__size
 
     # ___Setters___
     def set_file(self, arg: str) -> str:
@@ -280,8 +275,8 @@ class File(object):
         regex = re.findall(r'/.+/', arg)
         if regex:
             return regex[0]
-        else:
-            return ''
+
+        return ''
 
     def __extract_name(self, arg: str) -> str:
         # Extrai somente o nome do arquivo

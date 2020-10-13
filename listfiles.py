@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-#
-# disk.py: ListFiles() = List of files in the directory
-#
-# Author: Alisson, github.com/w-a-gomes
-# License: GPL
-# https://github.com/w-a-gomes/utility
+# https://github.com/w-a-gomes/osutility
 import subprocess
 import file
 
@@ -30,9 +25,9 @@ class ListFiles(object):
         """
         if self.__list_files:
             return self.__list_files
-        else:
-            self.__create_list()
-            return self.__list_files
+
+        self.__create_list()
+        return self.__list_files
 
     def __create_list(self):
         # Cria a lista com items listados no diretório
