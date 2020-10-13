@@ -8,8 +8,8 @@ class OsInfo(object):
     """Create an object of type 'OsInfo'"""
     def __init__(self):
         """Class constructor"""
-        self.__current_user = str()
-        self.__current_username = str()
+        self.__user = str()
+        self.__username = str()
         self.__hostname = str()
         self.__all_release_info = dict()
         self.__pretty_name = str()
@@ -21,10 +21,15 @@ class OsInfo(object):
         self.__kernel_version = str()
         self.__architecture = str()
         self.__motherboard = str()
+        self.__motherboard_version = str()
         self.__cpu = str()
         self.__gpu = str()
         self.__ram = str()
+        self.__ram_used = str()
+        self.__ram_free = str()
         self.__swap = str()
+        self.__swap_used = str()
+        self.__swap_free = str()
         self.__screen_resolution = str()
         self.__uptime = str()
         self.__shell = str()
@@ -38,21 +43,21 @@ class OsInfo(object):
 
         self.get_all_release_info()
 
-    def get_current_username(self):
-        if self.__current_username:
-            return self.__current_username
+    def get_user(self):
+        if self.__user:
+            return self.__user
 
-        self.__current_username = subprocess.getoutput('echo $USER')
-        return self.__current_username
-
-    def get_current_user(self):
-        if self.__current_user:
-            return self.__current_user
-
-        self.__current_user = subprocess.getoutput(
+        self.__user = subprocess.getoutput(
             "cat /etc/passwd | grep `whoami` | awk -F ',' '{print $1}' | awk -F ':' '{print $5}'")
 
-        return self.__current_user
+        return self.__user
+
+    def get_username(self):
+        if self.__username:
+            return self.__username
+
+        self.__username = subprocess.getoutput('echo $USER')
+        return self.__username
 
     def get_hostname(self):
         if self.__hostname:
@@ -160,21 +165,103 @@ class OsInfo(object):
         if self.__motherboard:
             return self.__motherboard
 
+        self.__motherboard = subprocess.getoutput(
+            'cat /sys/devices/virtual/dmi/id/product_name')
+        return self.__motherboard
+
+    def get_motherboard_version(self):
+        if self.__motherboard_version:
+            return self.__motherboard_version
+
+        self.__motherboard_version = subprocess.getoutput(
+            'cat /sys/devices/virtual/dmi/id/product_version')
+        return self.__motherboard_version
+
     def get_cpu(self):
         if self.__cpu:
             return self.__cpu
+        self.__cpu = subprocess.getoutput(
+            "cat /proc/cpuinfo | grep 'model name' | sed -n 1p | sed 's/.*:.//g;s/(.*)//g'")
+        return self.__cpu
 
     def get_gpu(self):
         if self.__gpu:
             return self.__gpu
 
+        gpu_id = subprocess.getoutput("lspci |grep -i graphics|awk '{ print $1 }'")
+        gpu_label = str()
+
+        if gpu_id.replace(':', '').replace('.', '').isdigit():
+            gpu_label = subprocess.getoutput(
+                'cat "/sys/bus/pci/devices/0000:{}/label"'.format(gpu_id)).strip()
+            if 'cat: ' in gpu_label:
+                gpu_label = ''
+
+        gpu_read = subprocess.getoutput('lspci | grep VGA')
+        if 'lspci:' in gpu_read or '/bin/sh:' in gpu_read:
+            return gpu_label
+
+        regex = re.findall(r'.+: (.+)', gpu_read)
+        gpu = str()
+        if regex:
+            gpu = regex[0]
+
+        regex_to_remove = re.findall(r'\(.+\)', gpu_read)
+        if regex_to_remove:
+            gpu = gpu.replace(regex_to_remove[0], '')
+
+        if 'intel' in gpu.lower():
+            dirt_to_clean = ['Corporation', 'Core Processor', 'Integrated Graphics Controller']
+            for i in dirt_to_clean:
+                gpu = gpu.replace(i, '')
+
+        if 'virtualbox' in gpu.lower():
+            gpu = 'VirtualBox Graphics Adapter'
+
+        self.__gpu = '{}{}'.format(gpu.replace('  ', ' '), gpu_label).strip()
+        return self.__gpu
+
     def get_ram(self):
         if self.__ram:
             return self.__ram
 
+        self.__ram = subprocess.getoutput("free -h | grep Mem | awk '{print $2}'")
+        return self.__ram
+
+    def get_ram_used(self):
+        if self.__ram_used:
+            return self.__ram_used
+
+        self.__ram_used = subprocess.getoutput("free -h | grep Mem | awk '{print $3}'")
+        return self.__ram_used
+
+    def get_ram_free(self):
+        if self.__ram_free:
+            return self.__ram_free
+
+        self.__ram_free = subprocess.getoutput("free -h | grep Mem | awk '{print $4}'")
+        return self.__ram_free
+
     def get_swap(self):
         if self.__swap:
             return self.__swap
+
+        self.__swap = subprocess.getoutput("free -h | grep Swap | awk '{print $2}'")
+        return self.__swap
+
+    def get_swap_used(self):
+        if self.__swap_used:
+            return self.__swap_used
+
+        self.__swap_used = subprocess.getoutput("free -h | grep Swap | awk '{print $3}'")
+        return self.__swap_used
+
+    def get_swap_free(self):
+        if self.__swap_free:
+            return self.__swap_free
+
+        self.__swap_free = subprocess.getoutput("free -h | grep Swap | awk '{print $4}'")
+        return self.__swap_free
 
     def get_screen_resolution(self):
         if self.__screen_resolution:
@@ -219,20 +306,24 @@ class OsInfo(object):
 
 if __name__ == '__main__':
     oi = OsInfo()
-    test = 1
-    if test == 0:
-        r = oi.get_all_release_info()
-        for k, v in r.items():
-            print(k + ':', v)
-    else:
-        print('    current-user:', oi.get_current_user())
-        print('current-username:', oi.get_current_username())
-        print('        hostname:', oi.get_hostname())
-        print('     pretty-name:', oi.get_pretty_name())
-        print('            name:', oi.get_name())
-        print('         name-id:', oi.get_name_id())
-        print('        codename:', oi.get_codename())
-        print('         version:', oi.get_version())
-        print('          kernel:', oi.get_kernel())
-        print('  kernel-version:', oi.get_kernel_version())
-        print('    architecture:', oi.get_architecture())
+    print('               user:', oi.get_user())
+    print('           username:', oi.get_username())
+    print('           hostname:', oi.get_hostname())
+    print('        pretty-name:', oi.get_pretty_name())
+    print('               name:', oi.get_name())
+    print('            name-id:', oi.get_name_id())
+    print('           codename:', oi.get_codename())
+    print('            version:', oi.get_version())
+    print('             kernel:', oi.get_kernel())
+    print('     kernel-version:', oi.get_kernel_version())
+    print('       architecture:', oi.get_architecture())
+    print('        motherboard:', oi.get_motherboard())
+    print('motherboard-version:', oi.get_motherboard_version())
+    print('                cpu:', oi.get_cpu())
+    print('                gpu:', oi.get_gpu())
+    print('                ram:', oi.get_ram())
+    print('           ram-used:', oi.get_ram_used())
+    print('           ram-free:', oi.get_ram_free())
+    print('               swap:', oi.get_swap())
+    print('          swap-used:', oi.get_swap_used())
+    print('          swap-free:', oi.get_swap_free())
