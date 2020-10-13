@@ -278,9 +278,20 @@ class OsInfo(object):
         if self.__uptime:
             return self.__uptime
 
+        uptime = subprocess.getoutput('uptime -p')
+        if uptime[:7] == 'uptime:':
+            self.__uptime = subprocess.getoutput('uptime').split(',')[0][9:].replace('up', '').strip() + ' Hs'
+        else:
+            self.__uptime = uptime.replace('up ', '')
+
+        return self.__uptime
+
     def get_shell(self):
         if self.__shell:
             return self.__shell
+
+        self.__shell = subprocess.getoutput('basename $SHELL').title()
+        return self.__shell
 
     def get_desktop_environment(self):
         if self.__desktop_environment:
@@ -335,3 +346,4 @@ if __name__ == '__main__':
     print('          swap-used:', oi.get_swap_used())
     print('          swap-free:', oi.get_swap_free())
     print('  screen-resolution:', oi.get_screen_resolution())
+    print('             uptime:', oi.get_uptime())
