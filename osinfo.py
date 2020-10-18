@@ -34,8 +34,10 @@ class OsInfo(object):
         self.__uptime = str()
         self.__shell = str()
         self.__desktop_environment = str()
+        self.__desktop_environment_version = str()
         self.__window_manager = str()
-        self.__deb_packages = str()
+        self.__package_manager = str()
+        self.__packages = str()
         self.__flatpak_packages = str()
         self.__snap_packages = str()
         self.__font = str()
@@ -290,20 +292,109 @@ class OsInfo(object):
         if self.__shell:
             return self.__shell
 
-        self.__shell = subprocess.getoutput('basename $SHELL').title()
+        self.__shell = subprocess.getoutput('basename $SHELL')
         return self.__shell
 
     def get_desktop_environment(self):
         if self.__desktop_environment:
             return self.__desktop_environment
 
+        desktop_environment = subprocess.getoutput(
+            'echo $XDG_CURRENT_DESKTOP').replace(':', '-').strip()
+
+        # Limpar
+        dirt_to_clean = ['(', ')', "'", '"', 'X-']
+        for cleaning_item in dirt_to_clean:
+            self.__desktop_environment = desktop_environment.replace(cleaning_item, '')
+
+        # Customizar
+        if 'kde' in self.__desktop_environment.lower():
+            self.__desktop_environment = 'Plasma (KDE)'
+
+        return self.__desktop_environment
+
+    def get_desktop_environment_version(self):
+        if self.__desktop_environment_version:
+            return self.__desktop_environment_version
+
+        cmd_version = {
+            'cinnamon': 'cinnamon --version', 'kde': 'plasmashell --version',
+            'budgie': 'budgie-desktop --version', 'gnome': 'gnome-shell --version',
+            'xfce': 'xfce4-about -V | grep xfce4-about', 'lxqt': 'lxqt-about -v | grep liblxqt'}
+
+        desktop_environment_version = str()
+        for cmd_version_key, cmd_version_value in cmd_version.items():
+            if cmd_version_key in self.get_desktop_environment().lower():
+                desktop_environment_version = subprocess.getoutput(cmd_version_value)
+                regex_version = re.findall(r'.+ (\d+.+)', desktop_environment_version)
+                if regex_version:
+                    desktop_environment_version = regex_version[0]
+                break
+
+        # Limpar
+        dirt_to_clean = ['(', ')', "'", '"', 'X-']
+        for cleaning_item in dirt_to_clean:
+            self.__desktop_environment_version = desktop_environment_version.replace(cleaning_item, '')
+
+        # Customizar
+        error = ['bash: ', '/bin/sh: ', 'xfce4-about: ']
+        for item_error in error:
+            if item_error in self.__desktop_environment_version.lower():
+                self.__desktop_environment_version = ''
+
+        return self.__desktop_environment_version
+
     def get_window_manager(self):
         if self.__window_manager:
             return self.__window_manager
 
-    def get_deb_packages(self):
-        if self.__deb_packages:
-            return self.__deb_packages
+        cmd_xprop = subprocess.getoutput('xprop -root -notype _NET_SUPPORTING_WM_CHECK')
+        cmd_window_manager = subprocess.getoutput(
+            'xprop -id {} -notype -len 100 -f _NET_WM_NAME 8t | grep WM_KEY'.format(
+                cmd_xprop.split()[-1])).split('=')[-1].replace('"', '').strip()
+
+        if cmd_window_manager == '':
+            cmd_xprop = subprocess.getoutput('xprop -root -notype _NET_SUPPORTING_WM_CHECK')
+            cmd_window_manager = subprocess.getoutput(
+                'xprop -id {} -notype -len 100 -f _NET_WM_NAME 8t | grep WM_NAME'.format(
+                    cmd_xprop.split()[-1])).split('=')[-1].replace('"', '').strip()
+
+        self.__window_manager = cmd_window_manager.replace(',', ' | ').replace('(', '').replace(')', '')
+        if 'xprop:' in cmd_window_manager:
+            self.__window_manager = ''
+
+        return self.__window_manager
+
+    def get_package_manager(self):
+        if self.__package_manager:
+            return self.__package_manager
+
+        self.__package_manager = 'unknown'
+        self.__packages = 'unknown'
+
+        cmd_packages = {
+            'dpkg': 'dpkg --get-selections | grep -cv deinstall$',
+            'rpm': 'rpm -qa | wc -l',
+            'pacman': 'pacman -Qq --color never | wc -l',
+            'eopkg': 'eopkg list-installed | wc -l',
+        }
+
+        for cmd_packages_key, cmd_packages_value in cmd_packages.items():
+            number = int(subprocess.getoutput(cmd_packages_value).split()[-1])
+
+            if number > 0:
+                self.__package_manager = cmd_packages_key
+                self.__packages = str(number)
+
+        return self.__package_manager
+
+    def get_packages(self):
+        if self.__packages:
+            return self.__packages
+
+        self.get_package_manager()
+
+        return self.__packages
 
     def get_flatpak_packages(self):
         if self.__flatpak_packages:
@@ -324,26 +415,32 @@ class OsInfo(object):
 
 if __name__ == '__main__':
     oi = OsInfo()
-    print('               user:', oi.get_user())
-    print('           username:', oi.get_username())
-    print('           hostname:', oi.get_hostname())
-    print('        pretty-name:', oi.get_pretty_name())
-    print('               name:', oi.get_name())
-    print('            name-id:', oi.get_name_id())
-    print('           codename:', oi.get_codename())
-    print('            version:', oi.get_version())
-    print('             kernel:', oi.get_kernel())
-    print('     kernel-version:', oi.get_kernel_version())
-    print('       architecture:', oi.get_architecture())
-    print('        motherboard:', oi.get_motherboard())
-    print('motherboard-version:', oi.get_motherboard_version())
-    print('                cpu:', oi.get_cpu())
-    print('                gpu:', oi.get_gpu())
-    print('                ram:', oi.get_ram())
-    print('           ram-used:', oi.get_ram_used())
-    print('           ram-free:', oi.get_ram_free())
-    print('               swap:', oi.get_swap())
-    print('          swap-used:', oi.get_swap_used())
-    print('          swap-free:', oi.get_swap_free())
-    print('  screen-resolution:', oi.get_screen_resolution())
-    print('             uptime:', oi.get_uptime())
+    print('                       user:', oi.get_user())
+    print('                   username:', oi.get_username())
+    print('                   hostname:', oi.get_hostname())
+    print('                pretty-name:', oi.get_pretty_name())
+    print('                       name:', oi.get_name())
+    print('                    name-id:', oi.get_name_id())
+    print('                   codename:', oi.get_codename())
+    print('                    version:', oi.get_version())
+    print('                     kernel:', oi.get_kernel())
+    print('             kernel-version:', oi.get_kernel_version())
+    print('               architecture:', oi.get_architecture())
+    print('                motherboard:', oi.get_motherboard())
+    print('        motherboard-version:', oi.get_motherboard_version())
+    print('                        cpu:', oi.get_cpu())
+    print('                        gpu:', oi.get_gpu())
+    print('                        ram:', oi.get_ram())
+    print('                   ram-used:', oi.get_ram_used())
+    print('                   ram-free:', oi.get_ram_free())
+    print('                       swap:', oi.get_swap())
+    print('                  swap-used:', oi.get_swap_used())
+    print('                  swap-free:', oi.get_swap_free())
+    print('          screen-resolution:', oi.get_screen_resolution())
+    print('                     uptime:', oi.get_uptime())
+    print('                      shell:', oi.get_shell())
+    print('        desktop-environment:', oi.get_desktop_environment())
+    print('desktop-environment-version:', oi.get_desktop_environment_version())
+    print('             window-manager:', oi.get_window_manager())
+    print('            package-manager:', oi.get_package_manager())
+    print('                   packages:', oi.get_packages())

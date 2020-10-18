@@ -272,7 +272,7 @@ class Disk(object):
         elif return_virtual_drive_cmd == 'dm':
             device_type = 'virtual-drive'
         else:
-            device_type = 'drive'
+            device_type = 'hdd'
 
         return device_type
 
