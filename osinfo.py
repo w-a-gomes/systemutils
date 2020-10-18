@@ -37,6 +37,7 @@ class OsInfo(object):
         self.__desktop_environment_version = str()
         self.__window_manager = str()
         self.__package_manager = str()
+        self.__display_server = str()
         self.__packages = str()
         self.__flatpak_packages = str()
         self.__snap_packages = str()
@@ -45,7 +46,7 @@ class OsInfo(object):
 
         self.get_all_release_info()
 
-    def get_user(self):
+    def get_user(self) -> str:
         if self.__user:
             return self.__user
 
@@ -54,14 +55,14 @@ class OsInfo(object):
 
         return self.__user
 
-    def get_username(self):
+    def get_username(self) -> str:
         if self.__username:
             return self.__username
 
         self.__username = subprocess.getoutput('echo $USER')
         return self.__username
 
-    def get_hostname(self):
+    def get_hostname(self) -> str:
         if self.__hostname:
             return self.__hostname
 
@@ -78,7 +79,7 @@ class OsInfo(object):
         self.__hostname = hostname
         return self.__hostname
 
-    def get_all_release_info(self):
+    def get_all_release_info(self) -> dict:
         if self.__all_release_info:
             return self.__all_release_info
 
@@ -89,7 +90,7 @@ class OsInfo(object):
 
         return self.__all_release_info
 
-    def get_pretty_name(self):
+    def get_pretty_name(self) -> str:
         if self.__pretty_name:
             return self.__pretty_name
 
@@ -98,7 +99,7 @@ class OsInfo(object):
 
         return self.__pretty_name
 
-    def get_name(self):
+    def get_name(self) -> str:
         if self.__name:
             return self.__name
 
@@ -106,7 +107,7 @@ class OsInfo(object):
             self.__name = self.__all_release_info['NAME']
         return self.__name
 
-    def get_name_id(self):
+    def get_name_id(self) -> str:
         if self.__name_id:
             return self.__name_id
 
@@ -117,7 +118,7 @@ class OsInfo(object):
 
         return self.__name_id
 
-    def get_codename(self):
+    def get_codename(self) -> str:
         if self.__codename:
             return self.__codename
 
@@ -128,7 +129,7 @@ class OsInfo(object):
 
         return self.__codename
 
-    def get_version(self):
+    def get_version(self) -> str:
         if self.__version:
             return self.__version
 
@@ -139,14 +140,14 @@ class OsInfo(object):
 
         return self.__version
 
-    def get_kernel(self):
+    def get_kernel(self) -> str:
         if self.__kernel:
             return self.__kernel
 
         self.__kernel = subprocess.getoutput('cat /proc/sys/kernel/ostype').title()
         return self.__kernel
 
-    def get_kernel_version(self):
+    def get_kernel_version(self) -> str:
         if self.__kernel_version:
             return self.__kernel_version
 
@@ -156,14 +157,14 @@ class OsInfo(object):
 
         return self.__kernel_version
 
-    def get_architecture(self):
+    def get_architecture(self) -> str:
         if self.__architecture:
             return self.__architecture
 
         self.__architecture = subprocess.getoutput('getconf LONG_BIT').title()
         return self.__architecture
 
-    def get_motherboard(self):
+    def get_motherboard(self) -> str:
         if self.__motherboard:
             return self.__motherboard
 
@@ -171,7 +172,7 @@ class OsInfo(object):
             'cat /sys/devices/virtual/dmi/id/product_name')
         return self.__motherboard
 
-    def get_motherboard_version(self):
+    def get_motherboard_version(self) -> str:
         if self.__motherboard_version:
             return self.__motherboard_version
 
@@ -179,14 +180,14 @@ class OsInfo(object):
             'cat /sys/devices/virtual/dmi/id/product_version')
         return self.__motherboard_version
 
-    def get_cpu(self):
+    def get_cpu(self) -> str:
         if self.__cpu:
             return self.__cpu
         self.__cpu = subprocess.getoutput(
             "cat /proc/cpuinfo | grep 'model name' | sed -n 1p | sed 's/.*:.//g;s/(.*)//g'")
         return self.__cpu
 
-    def get_gpu(self):
+    def get_gpu(self) -> str:
         if self.__gpu:
             return self.__gpu
 
@@ -223,49 +224,49 @@ class OsInfo(object):
         self.__gpu = '{}{}'.format(gpu.replace('  ', ' '), gpu_label).strip()
         return self.__gpu
 
-    def get_ram(self):
+    def get_ram(self) -> str:
         if self.__ram:
             return self.__ram
 
         self.__ram = subprocess.getoutput("free -h | grep Mem | awk '{print $2}'")
         return self.__ram
 
-    def get_ram_used(self):
+    def get_ram_used(self) -> str:
         if self.__ram_used:
             return self.__ram_used
 
         self.__ram_used = subprocess.getoutput("free -h | grep Mem | awk '{print $3}'")
         return self.__ram_used
 
-    def get_ram_free(self):
+    def get_ram_free(self) -> str:
         if self.__ram_free:
             return self.__ram_free
 
         self.__ram_free = subprocess.getoutput("free -h | grep Mem | awk '{print $4}'")
         return self.__ram_free
 
-    def get_swap(self):
+    def get_swap(self) -> str:
         if self.__swap:
             return self.__swap
 
         self.__swap = subprocess.getoutput("free -h | grep Swap | awk '{print $2}'")
         return self.__swap
 
-    def get_swap_used(self):
+    def get_swap_used(self) -> str:
         if self.__swap_used:
             return self.__swap_used
 
         self.__swap_used = subprocess.getoutput("free -h | grep Swap | awk '{print $3}'")
         return self.__swap_used
 
-    def get_swap_free(self):
+    def get_swap_free(self) -> str:
         if self.__swap_free:
             return self.__swap_free
 
         self.__swap_free = subprocess.getoutput("free -h | grep Swap | awk '{print $4}'")
         return self.__swap_free
 
-    def get_screen_resolution(self):
+    def get_screen_resolution(self) -> str:
         if self.__screen_resolution:
             return self.__screen_resolution
 
@@ -276,7 +277,7 @@ class OsInfo(object):
 
         return self.__screen_resolution
 
-    def get_uptime(self):
+    def get_uptime(self) -> str:
         if self.__uptime:
             return self.__uptime
 
@@ -288,14 +289,14 @@ class OsInfo(object):
 
         return self.__uptime
 
-    def get_shell(self):
+    def get_shell(self) -> str:
         if self.__shell:
             return self.__shell
 
         self.__shell = subprocess.getoutput('basename $SHELL')
         return self.__shell
 
-    def get_desktop_environment(self):
+    def get_desktop_environment(self) -> str:
         if self.__desktop_environment:
             return self.__desktop_environment
 
@@ -313,7 +314,7 @@ class OsInfo(object):
 
         return self.__desktop_environment
 
-    def get_desktop_environment_version(self):
+    def get_desktop_environment_version(self) -> str:
         if self.__desktop_environment_version:
             return self.__desktop_environment_version
 
@@ -344,7 +345,7 @@ class OsInfo(object):
 
         return self.__desktop_environment_version
 
-    def get_window_manager(self):
+    def get_window_manager(self) -> str:
         if self.__window_manager:
             return self.__window_manager
 
@@ -365,12 +366,16 @@ class OsInfo(object):
 
         return self.__window_manager
 
-    def get_package_manager(self):
+    def get_display_server(self) -> str:
+        if self.__display_server:
+            return self.__display_server
+
+        self.__display_server = subprocess.getoutput('echo $XDG_SESSION_TYPE')
+        return self.__display_server
+
+    def get_package_manager(self) -> str:
         if self.__package_manager:
             return self.__package_manager
-
-        self.__package_manager = 'unknown'
-        self.__packages = 'unknown'
 
         cmd_packages = {
             'dpkg': 'dpkg --get-selections | grep -cv deinstall$',
@@ -388,7 +393,7 @@ class OsInfo(object):
 
         return self.__package_manager
 
-    def get_packages(self):
+    def get_packages(self) -> str:
         if self.__packages:
             return self.__packages
 
@@ -396,21 +401,61 @@ class OsInfo(object):
 
         return self.__packages
 
-    def get_flatpak_packages(self):
+    def get_flatpak_packages(self) -> str:
         if self.__flatpak_packages:
             return self.__flatpak_packages
 
-    def get_snap_packages(self):
+        self.__flatpak_packages = '0'
+        number = int(subprocess.getoutput('flatpak list | wc -l').split()[-1])
+        if number > 0:
+            self.__flatpak_packages = str(number)
+
+        return self.__flatpak_packages
+
+    def get_snap_packages(self) -> str:
         if self.__snap_packages:
             return self.__snap_packages
 
-    def get_font(self):
+        self.__snap_packages = '0'
+
+        # Remove cabeçalho com: grep -v "^Name"
+        # number = int(subprocess.getoutput('snap list | grep -v "^Name" | wc -l').split()[-1])
+
+        # Remove cabeçalho com '-1' no fim
+        number = int(subprocess.getoutput('snap list | wc -l').split()[-1]) - 1
+        if number > 0:
+            self.__snap_packages = str(number)
+
+        return self.__snap_packages
+
+    def get_font(self) -> str:
         if self.__font:
             return self.__font
 
-    def get_browser(self):
+        self.__font = re.findall(r':.(.+)', subprocess.getoutput('fc-match'))[0].replace('"', '')
+        return self.__font
+
+    def get_browser(self) -> str:
         if self.__browser:
             return self.__browser
+
+        desktop_file = subprocess.getoutput('xdg-settings get default-web-browser').lower()
+        browser = desktop_file.replace('.desktop', '').replace('-', ' ')
+        bad_list = [
+            '/bin/sh:', 'xdg-settings:', 'leafpad', 'kwrite', 'gedit', 'kate', 'debian', 'sensible']
+        for bad_item in bad_list:
+            if bad_item in browser:
+                browser = ''
+
+        if '.' in browser:
+            regex_browser = re.findall(r'\.(\w+$)', browser)
+            if regex_browser:
+                browser = regex_browser[0]
+
+        browser = '' if browser == ' ' else browser
+        self.__browser = browser.title()
+
+        return self.__browser
 
 
 if __name__ == '__main__':
@@ -442,5 +487,9 @@ if __name__ == '__main__':
     print('        desktop-environment:', oi.get_desktop_environment())
     print('desktop-environment-version:', oi.get_desktop_environment_version())
     print('             window-manager:', oi.get_window_manager())
+    print('             display-server:', oi.get_display_server())
     print('            package-manager:', oi.get_package_manager())
     print('                   packages:', oi.get_packages())
+    print('           flatpak-packages:', oi.get_flatpak_packages())
+    print('              snap-packages:', oi.get_snap_packages())
+    print('                       font:', oi.get_font())
