@@ -493,3 +493,4 @@ if __name__ == '__main__':
     print('           flatpak-packages:', oi.get_flatpak_packages())
     print('              snap-packages:', oi.get_snap_packages())
     print('                       font:', oi.get_font())
+    print('                    browser:', oi.get_browser())
