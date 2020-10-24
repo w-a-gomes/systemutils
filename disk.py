@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# https://github.com/w-a-gomes/osutility
+# https://github.com/w-a-gomes/systemutils
 import subprocess
 
 
@@ -278,7 +278,7 @@ class Disk(object):
 
 
 if __name__ == '__main__':
-    d = Disk("/dev/sda3")
+    d = Disk('/dev/sda3')
     print('       mount point:', d.get_mount_point())
     print('  system file name:', d.get_system_file_name())
     print('parent kernel name:', d.get_parent_kernel_name())
