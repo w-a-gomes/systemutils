@@ -9,13 +9,13 @@ class Color(object):
     def __init__(self):
         """Class constructor"""
         self.__styles = {
-            'none': '0',
+            # 'none': '0',
             'bold': '1',
             'underline': '4',
             'negative': '7'
         }
         self.__colors = {
-            'none': '30',
+            # 'none': '30',
             'red': '31',
             'green': '32',
             'yellow': '33',
@@ -25,7 +25,7 @@ class Color(object):
             'white': '37'
         }
         self.__backgrounds = {
-            'none': '40',
+            # 'none': '40',
             'red': '41',
             'green': '42',
             'yellow': '43',
