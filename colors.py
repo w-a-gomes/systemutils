@@ -11,6 +11,7 @@ class Color(object):
         self.__styles = {
             # 'none': '0',
             'bold': '1',
+            'dark': '2',
             'underline': '4',
             'negative': '7'
         }
@@ -40,7 +41,7 @@ class Color(object):
 
         Get an ANSI escape code configured with the style, color and background of the text.
 
-        :param style: Can be None, 'bold', 'underline' or 'negative'
+        :param style: Can be None, 'bold', 'dark', 'underline' or 'negative'
         :param color: Can be None, 'red', 'green', 'yellow', 'blue', 'purple', 'cyan' or 'white'
         :param background: Can be None, 'red', 'green', 'yellow', 'blue', 'purple', 'cyan' or 'white'
         :return: String containing ANSI escape code for the configured style
