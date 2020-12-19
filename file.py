@@ -17,6 +17,11 @@ class LengthError(Error):
         self.message = message
 
 
+class CharacterError(Error):
+    def __init__(self, message):
+        self.message = message
+
+
 class File(object):
     """Create an object of type 'File'
 
@@ -26,12 +31,12 @@ class File(object):
     def __init__(self, file_url: str):
         """Class constructor"""
         self.__url = self.__resolve_url(file_url)      # Uses:
-        self.__url_history = [self.__url]
+        self.__url_history = [self.__url]              # url
         self.__mime = self.__resolve_mime()            # url
         self.__path = self.__resolve_path()            # url
         self.__extension = self.__resolve_extension()  # mime, url, path
         self.__name = self.__resolve_name()            # url, path, extension
-        self.__is_link = self.__resolve_is_link()
+        self.__is_link = self.__resolve_is_link()      # url
 
     def get_url(self):
         return self.__url
@@ -83,12 +88,9 @@ class File(object):
         """
         return self.__extension
 
-    def __resolve_extension(self):
-        if self.get_mime() == 'inode/directory;':
-            return ''
-
+    def __resolve_extension(self) -> str:
         # Extrai somente a extensão do arquivo
-        # import os
+
         # >>> filename, file_extension = os.path.splitext("/home/user/Documentos/Documentos.tar.gz")
         # >>> filename
         # '/home/user/Documentos/Documentos.tar'
@@ -97,31 +99,45 @@ class File(object):
 
         file_name = self.__url.replace(self.get_path(), '')
 
-        if file_name[0] == '.':  # Remover ponto inicial para não afetar a posterior divisão e...
-            file_name = file_name.lstrip('.')  # ...comparação. Nada é alterado na extensão.
+        # Remove ponto no início do nome do arquivo para não afetar a
+        # posterior divisão e comparação. Nada é alterado na extensão.
+        if file_name[0] == '.':
+            file_name = file_name.lstrip('.')
 
-        if '.' not in file_name:  # Arquivo sem extensão
-            extension = ''
+        # Arquivos sem extensão
+        condition = [
+            # Sem extensão.
+            '.' not in file_name,
 
-        elif file_name[-1] == '.':  # Um '.' no fim, faz parte do NOME e pode ser renomeado, i.e, não precisa...
-            extension = ''  # ...ser retirado pois não é uma extensão
+            # Arquivo terminado com um ponto, é também um arquivo sem extensão, pois um ponto (.) no fim
+            # faz parte do nome e pode ser renomeado, i.e, não precisa ser retirado pois não é uma extensão.
+            file_name[-1] == '.',
 
+            # "Arquivos" que são na realidade diretórios, logicamente não retornam extensão.
+            self.get_mime() == 'inode/directory'
+        ]
+        if any(condition):
+            return ''
+
+        # Divide o nome do arquivo em todos os pontos, criando uma lista.
+        # O último ou últimos items, representam a extensão. Será verificado abaixo.
+        separate_at_dots = file_name.split('.')
+
+        # Uma lista de 2 itens, representa um arquivo que só tem uma extensão, visto
+        # que anomalias com pontos no início e fim ja foram tratados.
+        # O primeiro item é o nome do arquivo, e último item é a extensão.
+        if len(separate_at_dots) == 2:
+            return '.' + separate_at_dots[-1]
+
+        # Lista sempre de 3 itens pra cima, representa arquivo que tem mais de uma extensão,
+        # ou pontos no meio do nome.
+        # Verifica extensão interna (penúltimo item). Adicionar futuramente, extensões internas aqui.
+        if separate_at_dots[-2] == 'tar':
+            extension = '.' + separate_at_dots[-2] + '.' + separate_at_dots[-1]
+
+        # Não havendo mais "tratamento", a última parte é sempre uma extensão.
         else:
-            separate_at_dots = file_name.split('.')
-
-            # Lista sempre de 2 itens. Arquivo só tem uma extensão, ou um ponto
-            if len(separate_at_dots) == 2:
-                extension = '.' + separate_at_dots[-1]
-
-            # Lista sempre de 3 itens pra cima. Arquivo tem mais de uma extensão, ou pontos no meio do nome
-            else:
-                # Verifica extensão internas (penúltimo item). Adicionar futuramente, extensões internas aqui
-                if separate_at_dots[-2] == 'tar':
-                    extension = '.' + separate_at_dots[-2] + '.' + separate_at_dots[-1]
-
-                # Não havendo mais, a última parte é sempre uma extensão, vide a falta delas ser tratadas no topo
-                else:
-                    extension = '.' + separate_at_dots[-1]
+            extension = '.' + separate_at_dots[-1]
 
         return extension
 
@@ -175,6 +191,8 @@ class File(object):
         extension = self.get_extension()
         if len(name) + len(extension) > 255:
             raise LengthError(message='File name longer than 255 characters (including extension)')
+        if '/' in name:
+            raise CharacterError(message='Names cannot contain the / (slash) character')
 
         self.__url = self.get_path() + name + extension
         self.__url_history.append(self.__url)
@@ -193,6 +211,8 @@ if __name__ == '__main__':
     try:
         f.set_name('foo')
     except LengthError as error:
+        print(error.message)
+    except CharacterError as error:
         print(error.message)
     print()
     print('      url:', f.get_url())
