@@ -52,6 +52,5 @@ class ListFiles(object):
 if __name__ == '__main__':
     files = ListFiles(subprocess.getoutput('pwd'))
     list_files = files.get_list()
-    print(list_files)
     for f in list_files:
         print(f.get_name() + f.get_extension(), f.get_mime())
