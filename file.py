@@ -4,6 +4,8 @@ import re
 import os
 from urllib.parse import unquote
 
+import pathlib
+
 import magic  # python3-magic
 
 
@@ -15,10 +17,10 @@ class Error(Exception):
 class LengthError(Error):
     """Very long name
 
-    Exception raised when a file name is longer than allowed.
+    Name greater than 255 characters (the extension is included in the sum)
     """
     def __init__(self, message):
-        self.message = message
+        print(message)
 
 
 class CharacterError(Error):
@@ -28,7 +30,7 @@ class CharacterError(Error):
     The forward slash (/) is an example.
     """
     def __init__(self, message):
-        self.message = message
+        print(message)
 
 
 class ExistingNameError(Error):
@@ -36,9 +38,8 @@ class ExistingNameError(Error):
 
     Exception raised when the file name already matches an existing file name in the directory.
     """
-    def __init__(self, message, name):
-        self.message = message
-        self.name = name
+    def __init__(self, message):
+        print(message)
 
 
 class File(object):
@@ -62,8 +63,8 @@ class File(object):
 
         Get the updated file url and cleanly.
 
-        >>file = File('/home/user/user name.txt')
-        >>file.get_url()
+        ›››file = File('/home/user/user name.txt')
+        ›››file.get_url()
         /home/user/user name.txt
 
         :return: URL
@@ -79,6 +80,9 @@ class File(object):
         else:
             clean_file = unquote(arg)
 
+        if not os.path.isfile(clean_file):
+            raise FileNotFoundError('The file in the past url does not exist', clean_file)
+
         return clean_file
 
     def get_path(self) -> str:
@@ -86,8 +90,8 @@ class File(object):
 
         Only the working path of the file, without its name and extension.
 
-        >>file = File('/home/user/user name.txt')
-        >>file.get_path()
+        ›››file = File('/home/user/user name.txt')
+        ›››file.get_path()
         /home/user/
 
         :return: String containing the working URL of the file
@@ -104,8 +108,8 @@ class File(object):
 
         Only the clean name, without the working path or file extension.
 
-        >>file = File('/home/user/user name.txt')
-        >>file.get_name()
+        ›››file = File('/home/user/user name.txt')
+        ›››file.get_name()
         user name
 
         :return: String containing the file name
@@ -121,8 +125,8 @@ class File(object):
 
         Only the file extension without your name.
 
-        >>file = File('/home/user/user name.txt')
-        >>file.get_extension()
+        ›››file = File('/home/user/user name.txt')
+        ›››file.get_extension()
         .txt
 
         :return: String containing the file extension
@@ -187,8 +191,8 @@ class File(object):
 
         The mime type is used to identify the file in the association of programs and icons.
 
-        >>file = File('/home/user/user name.txt')
-        >>file.get_mime()
+        ›››file = File('/home/user/user name.txt')
+        ›››file.get_mime()
         text/plain
 
         :return: String containing the file's mime type
@@ -196,7 +200,6 @@ class File(object):
         return self.__mime
 
     def __resolve_mime(self) -> str:
-
         # Força a criação de tipos mimes para determinadas extensões
         mime = 'text/plain'
         hack_extensions_filter = {
@@ -226,8 +229,8 @@ class File(object):
     def get_is_link(self) -> bool:
         """Checks whether a file is a link
 
-        >>file = File('/home/user/user name.txt')
-        >>file.get_is_link()
+        ›››file = File('/home/user/user name.txt')
+        ›››file.get_is_link()
         False
 
         :return: True or False
@@ -242,16 +245,16 @@ class File(object):
 
         When a file name is changed, it is saved in a history for later comparison.
 
-        >>file = File('/home/user/user name.txt')
-        >>file.get_url_history()
+        ›››file = File('/home/user/user name.txt')
+        ›››file.get_url_history()
         ['/home/user/user name.txt']
-        >>file.set_name('foo')
-        >>file.get_url()
+        ›››file.set_name('foo')
+        ›››file.get_url()
         /home/user/foo.txt
-        >>file.set_name('bar')
-        >>file.get_url()
+        ›››file.set_name('bar')
+        ›››file.get_url()
         /home/user/bar.txt
-        >>file.get_url_history()
+        ›››file.get_url_history()
         ['/home/user/user name.txt', '/home/user/foo.txt', '/home/user/bar.txt']
 
         :return: List with URL
@@ -268,6 +271,15 @@ class File(object):
           CharacterError: Characters not allowed, such as the slash
           ExistingNameError: Name that already exists in some file in the directory
 
+        ›››file = File('/home/user/user name.txt')
+        ›››file.get_name()
+        user name
+        ›››file.set_name('foobar')
+        ›››file.get_name()
+        foobar
+        ›››file.get_url()
+        /home/user/foobar.txt
+
         :param name: New name for the file
         """
         extension = self.get_extension()
@@ -280,8 +292,7 @@ class File(object):
         if name != self.get_name():
             if name + extension in os.listdir(self.get_path()):
                 raise ExistingNameError(
-                    message='A file with that name already exists in the directory',
-                    name=name + extension
+                    message='A file with that name "{}" already exists in the directory'.format(name + extension)
                 )
 
         # Updates
@@ -289,9 +300,32 @@ class File(object):
         self.__url_history.append(self.__url)
         self.__name = name
 
+    def set_path(self, path: str) -> None:
+        """"""
+
+        path = path + '/' if path[-1] != '/' else path
+        name = self.get_name()
+        extension = self.get_extension()
+
+        # Erro: Caminho existe
+        if not os.path.isdir(path):
+            raise NotADirectoryError('The path in the url "{}" does not exist'.format(path))
+
+        # Erro: ESTE "arquivo/nome de arquivo" já existe no caminho passado
+        if name + extension in os.listdir(path):
+            raise ExistingNameError(
+                message='In the provided path, there is already a file with the same'
+                        'name as this object ({})'.format(name + extension)
+            )
+
+        # Updates
+        self.__url = path + name + extension
+        self.__url_history.append(self.__url)
+        self.__path = path
+
 
 if __name__ == '__main__':
-    f = File(file_url=os.path.dirname(os.path.abspath(__file__)) + '/' + __file__)
+    f = File(file_url=os.path.dirname(os.path.abspath(__file__)) + '/file.py')
     print('      url:', f.get_url())
     print('     path:', f.get_path())
     print('     name:', f.get_name())
@@ -300,14 +334,27 @@ if __name__ == '__main__':
     print('     link:', f.get_is_link())
     print()
     try:
-        f.set_name('disks')
+        f.set_name('test')
     except LengthError as error:
-        print(error.message)
+        print(error)
     except CharacterError as error:
-        print(error.message)
+        print(error)
     except ExistingNameError as error:
-        print(error.message)
-        print('name ->', error.name)
+        print(error)
+    print()
+    print('      url:', f.get_url())
+    print('     path:', f.get_path())
+    print('     name:', f.get_name())
+    print('extension:', f.get_extension())
+    print('     mime:', f.get_mime())
+    print('     link:', f.get_is_link())
+    print()
+    try:
+        f.set_path(path=os.path.dirname(os.path.abspath(__file__)) + '/test/')
+    except NotADirectoryError as error:
+        print(error)
+    except ExistingNameError as error:
+        print(error)
     print()
     print('      url:', f.get_url())
     print('     path:', f.get_path())
