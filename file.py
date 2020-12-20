@@ -303,9 +303,9 @@ class File(object):
     def set_path(self, path: str) -> None:
         """Set a new path for the file
 
-        If the path does not exist in the system, an error will be raised.
+        If the path does not exist in the system, an error (NotADirectoryError) will be raised.
         If the path exists, but a file of the same name also exists in the
-        informed path, an error will also be raised.
+        informed path, an error (ExistingNameError) will also be raised.
 
         ›››file = File('/home/user/user name.txt')
         ›››file.get_url()
