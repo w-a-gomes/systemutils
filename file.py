@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # https://github.com/w-a-gomes/systemutils
 import re
-import os.path
+import os
+from urllib.parse import unquote
 
 import magic  # python3-magic
-from urllib.parse import unquote
 
 
 class Error(Exception):
@@ -13,13 +13,32 @@ class Error(Exception):
 
 
 class LengthError(Error):
+    """Very long name
+
+    Exception raised when a file name is longer than allowed.
+    """
     def __init__(self, message):
         self.message = message
 
 
 class CharacterError(Error):
+    """Characters not allowed.
+
+    Exception raised when characters that are not allowed in filenames are encountered.
+    The forward slash (/) is an example.
+    """
     def __init__(self, message):
         self.message = message
+
+
+class ExistingNameError(Error):
+    """Existing name
+
+    Exception raised when the file name already matches an existing file name in the directory.
+    """
+    def __init__(self, message, name):
+        self.message = message
+        self.name = name
 
 
 class File(object):
@@ -38,7 +57,17 @@ class File(object):
         self.__name = self.__resolve_name()            # url, path, extension
         self.__is_link = self.__resolve_is_link()      # url
 
-    def get_url(self):
+    def get_url(self) -> str:
+        """File URL
+
+        Get the updated file url and cleanly.
+
+        >>file = File('/home/user/user name.txt')
+        >>file.get_url()
+        /home/user/user name.txt
+
+        :return: URL
+        """
         return self.__url
 
     @staticmethod
@@ -57,11 +86,15 @@ class File(object):
 
         Only the working path of the file, without its name and extension.
 
+        >>file = File('/home/user/user name.txt')
+        >>file.get_path()
+        /home/user/
+
         :return: String containing the working URL of the file
         """
         return self.__path
 
-    def __resolve_path(self):
+    def __resolve_path(self) -> str:
         regex = re.findall(r'/.+/', self.__url)
         path = regex[0]
         return path
@@ -71,11 +104,15 @@ class File(object):
 
         Only the clean name, without the working path or file extension.
 
+        >>file = File('/home/user/user name.txt')
+        >>file.get_name()
+        user name
+
         :return: String containing the file name
         """
         return self.__name
 
-    def __resolve_name(self):
+    def __resolve_name(self) -> str:
         name = self.__url.replace(self.get_path(), '').replace(self.get_extension(), '')
         return name
 
@@ -83,6 +120,10 @@ class File(object):
         """Get the file extension
 
         Only the file extension without your name.
+
+        >>file = File('/home/user/user name.txt')
+        >>file.get_extension()
+        .txt
 
         :return: String containing the file extension
         """
@@ -146,11 +187,15 @@ class File(object):
 
         The mime type is used to identify the file in the association of programs and icons.
 
+        >>file = File('/home/user/user name.txt')
+        >>file.get_mime()
+        text/plain
+
         :return: String containing the file's mime type
         """
         return self.__mime
 
-    def __resolve_mime(self):
+    def __resolve_mime(self) -> str:
 
         # Força a criação de tipos mimes para determinadas extensões
         mime = 'text/plain'
@@ -179,21 +224,67 @@ class File(object):
         return mime
 
     def get_is_link(self) -> bool:
+        """Checks whether a file is a link
+
+        >>file = File('/home/user/user name.txt')
+        >>file.get_is_link()
+        False
+
+        :return: True or False
+        """
         return self.__is_link
 
     def __resolve_is_link(self) -> bool:
         return os.path.islink(self.__url)
 
-    def get_url_history(self):
+    def get_url_history(self) -> list:
+        """List with URL that has already been modified
+
+        When a file name is changed, it is saved in a history for later comparison.
+
+        >>file = File('/home/user/user name.txt')
+        >>file.get_url_history()
+        ['/home/user/user name.txt']
+        >>file.set_name('foo')
+        >>file.get_url()
+        /home/user/foo.txt
+        >>file.set_name('bar')
+        >>file.get_url()
+        /home/user/bar.txt
+        >>file.get_url_history()
+        ['/home/user/user name.txt', '/home/user/foo.txt', '/home/user/bar.txt']
+
+        :return: List with URL
+        """
         return self.__url_history
 
     def set_name(self, name: str) -> None:
+        """Sets a new name for the file
+
+        If the name passed cannot be used for any reason, an exception is raised.
+
+        Exceptions:
+          LengthError: Name greater than 255 characters (the extension is included in the sum)
+          CharacterError: Characters not allowed, such as the slash
+          ExistingNameError: Name that already exists in some file in the directory
+
+        :param name: New name for the file
+        """
         extension = self.get_extension()
+
+        # Errors
         if len(name) + len(extension) > 255:
             raise LengthError(message='File name longer than 255 characters (including extension)')
         if '/' in name:
             raise CharacterError(message='Names cannot contain the / (slash) character')
+        if name != self.get_name():
+            if name + extension in os.listdir(self.get_path()):
+                raise ExistingNameError(
+                    message='A file with that name already exists in the directory',
+                    name=name + extension
+                )
 
+        # Updates
         self.__url = self.get_path() + name + extension
         self.__url_history.append(self.__url)
         self.__name = name
@@ -209,11 +300,14 @@ if __name__ == '__main__':
     print('     link:', f.get_is_link())
     print()
     try:
-        f.set_name('foo')
+        f.set_name('disks')
     except LengthError as error:
         print(error.message)
     except CharacterError as error:
         print(error.message)
+    except ExistingNameError as error:
+        print(error.message)
+        print('name ->', error.name)
     print()
     print('      url:', f.get_url())
     print('     path:', f.get_path())
