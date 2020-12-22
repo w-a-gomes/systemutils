@@ -9,39 +9,6 @@ import pathlib
 import magic  # python3-magic
 
 
-class Error(Exception):
-    """Base class for exceptions in this module."""
-    pass
-
-
-class LengthError(Error):
-    """Very long name
-
-    Name greater than 255 characters (the extension is included in the sum)
-    """
-    def __init__(self, message):
-        print(message)
-
-
-class CharacterError(Error):
-    """Characters not allowed.
-
-    Exception raised when characters that are not allowed in filenames are encountered.
-    The forward slash (/) is an example.
-    """
-    def __init__(self, message):
-        print(message)
-
-
-class ExistingNameError(Error):
-    """Existing name
-
-    Exception raised when the file name already matches an existing file name in the directory.
-    """
-    def __init__(self, message):
-        print(message)
-
-
 class File(object):
     """Create an object of type 'File'
 
@@ -52,6 +19,7 @@ class File(object):
         """Class constructor"""
         self.__url = self.__resolve_url(file_url)      # Uses:
         self.__url_history = [self.__url]              # url
+        self.__undo_history = [self.__url]             # url
         self.__mime = self.__resolve_mime()            # url
         self.__path = self.__resolve_path()            # url
         self.__extension = self.__resolve_extension()  # mime, url, path
@@ -261,6 +229,29 @@ class File(object):
         """
         return self.__url_history
 
+    def get_undo_history(self) -> list:
+        """Undo list with URL
+
+        Unlike a normal history, where any change is recorded, in the history of undo,
+        it only contains the last valid URL's. Nothing that has already been undone is recorded.
+
+        ›››file = File('/home/user/user name.txt')
+        ›››file.set_name('foo')
+        ›››file.set_name('bar')
+        ›››file.get_url()
+        /home/user/bar.txt
+        ›››file.set_undo()
+        ›››file.get_url()
+        /home/user/foo.txt
+        ›››file.get_url_history()
+        ['/home/user/user name.txt', '/home/user/foo.txt', '/home/user/bar.txt', '/home/user/foo.txt']
+        ›››file.get_undo_history()
+        ['/home/user/user name.txt', '/home/user/foo.txt']
+
+        :return: List with URL
+        """
+        return self.__undo_history
+
     def set_name(self, name: str) -> None:
         """Sets a new name for the file
 
@@ -268,8 +259,9 @@ class File(object):
 
         Exceptions:
           LengthError: Name greater than 255 characters (the extension is included in the sum)
-          CharacterError: Characters not allowed, such as the slash
+          CharacterError: Characters not allowed, such as the slash (/)
           ExistingNameError: Name that already exists in some file in the directory
+          NameNotAllowedError: 
 
         ›››file = File('/home/user/user name.txt')
         ›››file.get_name()
@@ -294,89 +286,116 @@ class File(object):
                 raise ExistingNameError(
                     message='A file with that name "{}" already exists in the directory'.format(name + extension)
                 )
+        if name == '.' or name == '..':
+            raise NameNotAllowedError(message='It is not possible to use one dot (.) or two dots (..) as a file name.')
 
         # Updates
         self.__url = self.get_path() + name + extension
         self.__url_history.append(self.__url)
+        self.__undo_history.append(self.__url)
         self.__name = name
 
-    def set_path(self, path: str) -> None:
-        """Set a new path for the file
+    def set_undo(self) -> None:
+        """Undo last name
 
-        If the path does not exist in the system, an error (NotADirectoryError) will be raised.
-        If the path exists, but a file of the same name also exists in the
-        informed path, an error (ExistingNameError) will also be raised.
-
-        ›››file = File('/home/user/user name.txt')
-        ›››file.get_url()
-        /home/user/user name.txt
-        ›››file.set_path('/foo/bar')
-        ›››file.get_url()
-        /foo/bar/user name.txt
-
-        :param path: new path for the file
+        Undoes the last action, returning to the previous file name.
         """
+        if len(self.__undo_history) >= 2:
+            del(self.__undo_history[-1])
 
-        path = path + '/' if path[-1] != '/' else path
-        name = self.get_name()
-        extension = self.get_extension()
+            self.__url = self.__undo_history[-1]
+            self.__url_history.append(self.__url)
+            self.__resolve_name()
 
-        # Erro: Caminho existe
-        if not os.path.isdir(path):
-            raise NotADirectoryError('The path in the url "{}" does not exist'.format(path))
 
-        # Erro: ESTE "arquivo/nome de arquivo" já existe no caminho passado
-        if name + extension in os.listdir(path):
-            raise ExistingNameError(
-                message='In the provided path, there is already a file with the same'
-                        'name as this object ({})'.format(name + extension)
-            )
+class Error(Exception):
+    """Base class for exceptions in this module."""
+    pass
 
-        # Updates
-        self.__url = path + name + extension
-        self.__url_history.append(self.__url)
-        self.__path = path
+
+class LengthError(Error):
+    """Very long name
+
+    Name greater than 255 characters (the extension is included in the sum)
+    """
+    def __init__(self, message):
+        self.message = message
+
+
+class CharacterError(Error):
+    """Characters not allowed.
+
+    Exception raised when characters that are not allowed in filenames are encountered.
+    The forward slash (/) is an example.
+    """
+    def __init__(self, message):
+        self.message = message
+
+
+class ExistingNameError(Error):
+    """Existing name
+
+    Exception raised when the file name already matches an existing file name in the directory.
+    """
+    def __init__(self, message):
+        self.message = message
+
+
+class NameNotAllowedError(Error):
+    """Name not allowed
+
+    Raises an exception when the file name is just one dot (.) or two dots (..),
+    as they are reserved names that point to directories.
+    """
+    def __init__(self, message):
+        self.message = message
 
 
 if __name__ == '__main__':
-    f = File(file_url=os.path.dirname(os.path.abspath(__file__)) + '/file.py')
-    print('      url:', f.get_url())
-    print('     path:', f.get_path())
-    print('     name:', f.get_name())
-    print('extension:', f.get_extension())
-    print('     mime:', f.get_mime())
-    print('     link:', f.get_is_link())
-    print()
     try:
-        f.set_name('test')
-    except LengthError as error:
+        f = File(file_url=os.path.dirname(os.path.abspath(__file__)) + '/file.py')
+    except FileNotFoundError as error:
         print(error)
-    except CharacterError as error:
-        print(error)
-    except ExistingNameError as error:
-        print(error)
-    print()
-    print('      url:', f.get_url())
-    print('     path:', f.get_path())
-    print('     name:', f.get_name())
-    print('extension:', f.get_extension())
-    print('     mime:', f.get_mime())
-    print('     link:', f.get_is_link())
-    print()
-    try:
-        f.set_path(path=os.path.dirname(os.path.abspath(__file__)) + '/test/')
-    except NotADirectoryError as error:
-        print(error)
-    except ExistingNameError as error:
-        print(error)
-    print()
-    print('      url:', f.get_url())
-    print('     path:', f.get_path())
-    print('     name:', f.get_name())
-    print('extension:', f.get_extension())
-    print('     mime:', f.get_mime())
-    print('     link:', f.get_is_link())
-    print()
-    print('history:')
-    for item in f.get_url_history():
-        print(item)
+    else:
+        print('      url:', f.get_url())
+        print('     path:', f.get_path())
+        print('     name:', f.get_name())
+        print('extension:', f.get_extension())
+        print('     mime:', f.get_mime())
+        print('     link:', f.get_is_link())
+        print()
+        try:
+            f.set_name('.foo')
+        except LengthError as error:
+            print(error.message)
+        except CharacterError as error:
+            print(error.message)
+        except ExistingNameError as error:
+            print(error.message)
+        except NameNotAllowedError as error:
+            print(error.message)
+        print()
+        print('      url:', f.get_url())
+        print('     path:', f.get_path())
+        print('     name:', f.get_name())
+        print('extension:', f.get_extension())
+        print('     mime:', f.get_mime())
+        print('     link:', f.get_is_link())
+        print()
+        if f.get_name()[0] == '.':
+            f.set_undo()
+        print()
+        print('      url:', f.get_url())
+        print('     path:', f.get_path())
+        print('     name:', f.get_name())
+        print('extension:', f.get_extension())
+        print('     mime:', f.get_mime())
+        print('     link:', f.get_is_link())
+        print()
+        print('history:')
+        for item in f.get_url_history():
+            print(item)
+        print()
+        print('undo history:')
+        for item in f.get_undo_history():
+            print(item)
