@@ -4,9 +4,25 @@ import re
 import os
 from urllib.parse import unquote
 
-import pathlib
 
-import magic  # python3-magic
+def get_extensions_list():
+    with open('/etc/mime.types', 'r') as mime_file:
+        mime_file_lines = mime_file.readlines()
+
+    extensions = list()
+    for line in mime_file_lines:
+        line_as_list = line.split('\t')
+        extension = line_as_list[-1].replace('\n', '')
+        if ' ' in extension:
+            extensions_list = extension.split(' ')
+            for extension_item in extensions_list:
+                if '/' not in extension_item:
+                    extensions.append('.' + extension_item)
+        else:
+            if '/' not in extension:
+                extensions.append('.' + extension)
+
+    return extensions
 
 
 class File(object):
@@ -14,17 +30,16 @@ class File(object):
 
     Extract information from a file, including "slice" the URL.
     """
+    extensions_list = get_extensions_list()
 
     def __init__(self, file_url: str):
         """Class constructor"""
+        self.__is_directory = False
         self.__url = self.__resolve_url(file_url)      # Uses:
         self.__url_history = [self.__url]              # url
-        self.__undo_history = [self.__url]             # url
-        self.__mime = self.__resolve_mime()            # url
         self.__path = self.__resolve_path()            # url
-        self.__extension = self.__resolve_extension()  # mime, url, path
+        self.__extension = self.__resolve_extension()  # isdir, url, path
         self.__name = self.__resolve_name()            # url, path, extension
-        self.__is_link = self.__resolve_is_link()      # url
 
     def get_url(self) -> str:
         """File URL
@@ -39,8 +54,7 @@ class File(object):
         """
         return self.__url
 
-    @staticmethod
-    def __resolve_url(arg: str) -> str:
+    def __resolve_url(self, arg: str) -> str:
         # Limpa a url dos arquivos
         regex = re.findall(r'(file://|file:/|file:|file|//|/|)/.+', arg)
         if regex:
@@ -48,7 +62,9 @@ class File(object):
         else:
             clean_file = unquote(arg)
 
-        if not os.path.isfile(clean_file):
+        self.__is_directory = os.path.isdir(clean_file)
+
+        if not os.path.isfile(clean_file) and not self.__is_directory:
             raise FileNotFoundError('The file in the past url does not exist', clean_file)
 
         return clean_file
@@ -112,8 +128,13 @@ class File(object):
 
         file_name = self.__url.replace(self.get_path(), '')
 
-        # Remove ponto no início do nome do arquivo para não afetar a
+        # Remover ponto no início do nome do arquivo para não afetar a
         # posterior divisão e comparação. Nada é alterado na extensão.
+        #
+        # O motivo deste tipo de validação, é que simplesmente percorrer a lista
+        # de extensões comparando-as com o fim do nome do arquivo, não produz o
+        # resultado esperado; porque um arquivo de nome '.txt' não pode ser
+        # reconhecido como um arquivo de nome vazio '' e extensão '.txt'
         if file_name[0] == '.':
             file_name = file_name.lstrip('.')
 
@@ -122,12 +143,13 @@ class File(object):
             # Sem extensão.
             '.' not in file_name,
 
-            # Arquivo terminado com um ponto, é também um arquivo sem extensão, pois um ponto (.) no fim
-            # faz parte do nome e pode ser renomeado, i.e, não precisa ser retirado pois não é uma extensão.
+            # Arquivo terminado com um ponto, é também um arquivo sem extensão,
+            # pois um ponto (.) no fim faz parte do nome e pode ser renomeado,
+            # i.e, não precisa ser retirado pois não é uma extensão.
             file_name[-1] == '.',
 
             # "Arquivos" que são na realidade diretórios, logicamente não retornam extensão.
-            self.get_mime() == 'inode/directory'
+            self.is_directory()
         ]
         if any(condition):
             return ''
@@ -140,73 +162,46 @@ class File(object):
         # que anomalias com pontos no início e fim ja foram tratados.
         # O primeiro item é o nome do arquivo, e último item é a extensão.
         if len(separate_at_dots) == 2:
-            return '.' + separate_at_dots[-1]
+            ext = '.' + separate_at_dots[-1]
 
-        # Lista sempre de 3 itens pra cima, representa arquivo que tem mais de uma extensão,
-        # ou pontos no meio do nome.
-        # Verifica extensão interna (penúltimo item). Adicionar futuramente, extensões internas aqui.
-        if separate_at_dots[-2] == 'tar':
-            extension = '.' + separate_at_dots[-2] + '.' + separate_at_dots[-1]
+            # Verifica se a extensão existe
+            if ext in self.extensions_list:
+                return ext
+            else:
+                return ''
 
-        # Não havendo mais "tratamento", a última parte é sempre uma extensão.
-        else:
-            extension = '.' + separate_at_dots[-1]
+        # Lista sempre de 3 itens pra cima, representa arquivo que
+        # tem mais de uma extensão, ou pontos no meio do nome.
+        # Verificar extensão interna (penúltimo item).
+        # Futuramente, adicionar extensões internas aqui.
+        if len(separate_at_dots) > 2:
+            ext = '.' + separate_at_dots[-1]
 
-        return extension
+            # Verifica se a extensão existe
+            if ext in self.extensions_list:
 
-    def get_mime(self) -> str:
-        """Get the file's mime type
+                # Se existe extensão interna
+                if separate_at_dots[-2] == 'tar':
+                    return '.' + separate_at_dots[-2] + ext
 
-        The mime type is used to identify the file in the association of programs and icons.
+                # Extensão normal
+                else:
+                    return '.' + separate_at_dots[-1]
 
-        ›››file = File('/home/user/user name.txt')
-        ›››file.get_mime()
-        text/plain
+            # Extensão não existe
+            else:
+                return ''
 
-        :return: String containing the file's mime type
-        """
-        return self.__mime
-
-    def __resolve_mime(self) -> str:
-        # Força a criação de tipos mimes para determinadas extensões
-        mime = 'text/plain'
-        hack_extensions_filter = {
-            '.svg': 'image/svg+xml',
-            '.png': 'image/png',
-            '.jpg': 'image/jpeg',
-            '.jpeg': 'image/jpeg',
-            '.py': 'text/x-python',
-            '.md': 'text/markdown',
-            '.oxt': 'application/vnd.openofficeorg.extension',
-            '.mp3': 'audio/mpeg',
-            '.apk': 'application/vnd.android.package-archive',
-        }
-        for key, value in hack_extensions_filter.items():
-            if self.__url[-len(key):].lower() == key:
-                mime = value
-
-        if mime == 'text/plain':
-            magic_mime = magic.Magic(mime=True)
-            try:
-                mime = magic_mime.from_buffer(open('{}'.format(self.__url), 'rb').read(2048))
-            except IsADirectoryError:
-                mime = 'inode/directory'
-
-        return mime
-
-    def get_is_link(self) -> bool:
-        """Checks whether a file is a link
+    def is_directory(self) -> bool:
+        """Checks whether a file is a directory
 
         ›››file = File('/home/user/user name.txt')
-        ›››file.get_is_link()
+        ›››file.is_dir()
         False
 
         :return: True or False
         """
-        return self.__is_link
-
-    def __resolve_is_link(self) -> bool:
-        return os.path.islink(self.__url)
+        return self.__is_directory
 
     def get_url_history(self) -> list:
         """List with URL that has already been modified
@@ -228,29 +223,6 @@ class File(object):
         :return: List with URL
         """
         return self.__url_history
-
-    def get_undo_history(self) -> list:
-        """Undo list with URL
-
-        Unlike a normal history, where any change is recorded, in the history of undo,
-        it only contains the last valid URL's. Nothing that has already been undone is recorded.
-
-        ›››file = File('/home/user/user name.txt')
-        ›››file.set_name('foo')
-        ›››file.set_name('bar')
-        ›››file.get_url()
-        /home/user/bar.txt
-        ›››file.set_undo()
-        ›››file.get_url()
-        /home/user/foo.txt
-        ›››file.get_url_history()
-        ['/home/user/user name.txt', '/home/user/foo.txt', '/home/user/bar.txt', '/home/user/foo.txt']
-        ›››file.get_undo_history()
-        ['/home/user/user name.txt', '/home/user/foo.txt']
-
-        :return: List with URL
-        """
-        return self.__undo_history
 
     def set_name(self, name: str) -> None:
         """Sets a new name for the file
@@ -292,20 +264,7 @@ class File(object):
         # Updates
         self.__url = self.get_path() + name + extension
         self.__url_history.append(self.__url)
-        self.__undo_history.append(self.__url)
         self.__name = name
-
-    def set_undo(self) -> None:
-        """Undo last name
-
-        Undoes the last action, returning to the previous file name.
-        """
-        if len(self.__undo_history) >= 2:
-            del(self.__undo_history[-1])
-
-            self.__url = self.__undo_history[-1]
-            self.__url_history.append(self.__url)
-            self.__resolve_name()
 
 
 class Error(Exception):
@@ -361,8 +320,7 @@ if __name__ == '__main__':
         print('     path:', f.get_path())
         print('     name:', f.get_name())
         print('extension:', f.get_extension())
-        print('     mime:', f.get_mime())
-        print('     link:', f.get_is_link())
+        print('   is dir:', f.is_directory())
         print()
         try:
             f.set_name('.foo')
@@ -379,23 +337,8 @@ if __name__ == '__main__':
         print('     path:', f.get_path())
         print('     name:', f.get_name())
         print('extension:', f.get_extension())
-        print('     mime:', f.get_mime())
-        print('     link:', f.get_is_link())
-        print()
-        if f.get_name()[0] == '.':
-            f.set_undo()
-        print()
-        print('      url:', f.get_url())
-        print('     path:', f.get_path())
-        print('     name:', f.get_name())
-        print('extension:', f.get_extension())
-        print('     mime:', f.get_mime())
-        print('     link:', f.get_is_link())
+        print('   is dir:', f.is_directory())
         print()
         print('history:')
         for item in f.get_url_history():
-            print(item)
-        print()
-        print('undo history:')
-        for item in f.get_undo_history():
             print(item)

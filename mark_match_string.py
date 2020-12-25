@@ -12,5 +12,7 @@ class MarkMatchString(str):
 
 
 if __name__ == '__main__':
-    m = MarkMatchString('O rato roeu a roupa do rei de roma. A roupa ficou feia')
-    print(m.mark_match_sub(regex_match='roupa', regex_sub='camisa'))
+    m = MarkMatchString('O rato roeu a roupa do rei de roma. A roupa ficou esburacada')
+    match = m.mark_match_sub(regex_match='roupa', regex_sub='perna')
+    print(match[0])
+    print(match[1])

@@ -53,4 +53,4 @@ if __name__ == '__main__':
     files = ListFiles(subprocess.getoutput('pwd'))
     list_files = files.get_list()
     for f in list_files:
-        print(f.get_name() + f.get_extension(), f.get_extension(), f.get_mime())
+        print(f.get_name() + f.get_extension(), f.get_extension(), f.is_directory())
