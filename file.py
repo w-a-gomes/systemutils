@@ -5,35 +5,15 @@ import os
 from urllib.parse import unquote
 
 
-def get_extensions_list():
-    with open('/etc/mime.types', 'r') as mime_file:
-        mime_file_lines = mime_file.readlines()
-
-    extensions = list()
-    for line in mime_file_lines:
-        line_as_list = line.split('\t')
-        extension = line_as_list[-1].replace('\n', '')
-        if ' ' in extension:
-            extensions_list = extension.split(' ')
-            for extension_item in extensions_list:
-                if '/' not in extension_item:
-                    extensions.append('.' + extension_item)
-        else:
-            if '/' not in extension:
-                extensions.append('.' + extension)
-
-    return extensions
-
-
 class File(object):
     """Create an object of type 'File'
 
     Extract information from a file, including "slice" the URL.
     """
-    extensions_list = get_extensions_list()
 
-    def __init__(self, file_url: str):
+    def __init__(self, file_url: str, use_list_of_extensions: list = None):
         """Class constructor"""
+        self.extensions_list = use_list_of_extensions
         self.__is_directory = False
         self.__url = self.__resolve_url(file_url)      # Uses:
         self.__url_history = [self.__url]              # url
@@ -165,10 +145,12 @@ class File(object):
             ext = '.' + separate_at_dots[-1]
 
             # Verifica se a extensão existe
-            if ext in self.extensions_list:
-                return ext
-            else:
-                return ''
+            if self.extensions_list:
+                if ext in self.extensions_list:
+                    return ext
+                else:
+                    return ''
+            return ext
 
         # Lista sempre de 3 itens pra cima, representa arquivo que
         # tem mais de uma extensão, ou pontos no meio do nome.
@@ -178,26 +160,32 @@ class File(object):
             ext = '.' + separate_at_dots[-1]
 
             # Verifica se a extensão existe
-            if ext in self.extensions_list:
+            if self.extensions_list:
+                if ext in self.extensions_list:
 
-                # Se existe extensão interna
-                if separate_at_dots[-2] == 'tar':
-                    return '.' + separate_at_dots[-2] + ext
+                    # Se existe extensão interna
+                    if separate_at_dots[-2] == 'tar':
+                        return '.' + separate_at_dots[-2] + ext
 
-                # Extensão normal
+                    # Extensão normal
+                    else:
+                        return '.' + separate_at_dots[-1]
+
+                # Extensão não existe
                 else:
-                    return '.' + separate_at_dots[-1]
+                    return ''
 
-            # Extensão não existe
-            else:
-                return ''
+            return ext
 
     def is_directory(self) -> bool:
         """Checks whether a file is a directory
 
         ›››file = File('/home/user/user name.txt')
-        ›››file.is_dir()
+        ›››file.is_directory()
         False
+        ›››file = File('/home/user/Downloads')
+        ›››file.is_directory()
+        True
 
         :return: True or False
         """
@@ -312,7 +300,10 @@ class NameNotAllowedError(Error):
 
 if __name__ == '__main__':
     try:
-        f = File(file_url=os.path.dirname(os.path.abspath(__file__)) + '/file.py')
+        f = File(
+            file_url=os.path.dirname(os.path.abspath(__file__)) + '/README.md',
+            use_list_of_extensions=None
+        )
     except FileNotFoundError as error:
         print(error)
     else:

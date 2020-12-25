@@ -2,17 +2,34 @@
 import re
 
 
-class MarkMatchString(str):
-    def mark_match_sub(self, regex_match: str, regex_sub: str) -> list:
-        # antes = re.sub(regex_match, '<' + regex_match + '>', self)
-        # replace() e mais leve que re.sub()
-        antes = self.replace(regex_match, '<' + regex_match + '>')
-        depois = re.sub(regex_match, '<' + regex_sub + '>', self)
-        return [antes, depois]
+class MarkMatchString(object):
+    def __init__(self, text: str, regex_match: str, regex_sub: str, markup_start: str = '<', markup_end: str = '>'):
+        self.text = text
+        self.regex_match = regex_match
+        self.regex_sub = regex_sub
+        self.markup_start = markup_start
+        self.markup_end = markup_end
+
+    def mark_match(self) -> str:
+        return self.text.replace(self.regex_match, self.markup_start + self.regex_match + self.markup_end)
+
+    def mark_sub(self) -> str:
+        return re.sub(self.regex_match, self.markup_start + self.regex_sub + self.markup_end, self.text)
 
 
 if __name__ == '__main__':
-    m = MarkMatchString('O rato roeu a roupa do rei de roma. A roupa ficou esburacada')
-    match = m.mark_match_sub(regex_match='roupa', regex_sub='perna')
-    print(match[0])
-    print(match[1])
+    m = MarkMatchString(
+        text='O rato roeu a roupa do rei de roma 1. A roupa ficou esburacada',
+        regex_match='roupa', regex_sub='perna'
+    )
+    print(m.mark_match())
+    print(m.mark_sub())
+    print('.......')
+    m = MarkMatchString(
+        text='O rato roeu a roupa do rei de roma 2. A roupa ficou esburacada',
+        regex_match=r'\d..+', regex_sub='fim',
+        markup_start='[', markup_end=']'
+    )
+    print(m.mark_match())
+    print(m.mark_sub())
+
