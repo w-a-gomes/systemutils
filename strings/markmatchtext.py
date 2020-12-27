@@ -2,7 +2,7 @@
 import re
 
 
-class MarkMatchString(object):
+class MarkMatchText(object):
     def __init__(self, text: str, regex_match: str, regex_sub: str, markup_start: str = '<', markup_end: str = '>'):
         self.text = text
         self.regex_match = regex_match
@@ -18,18 +18,17 @@ class MarkMatchString(object):
 
 
 if __name__ == '__main__':
-    m = MarkMatchString(
+    m = MarkMatchText(
         text='O rato roeu a roupa do rei de roma 1. A roupa ficou esburacada',
         regex_match='roupa', regex_sub='perna'
     )
     print(m.mark_match())
     print(m.mark_sub())
     print('.......')
-    m = MarkMatchString(
+    m = MarkMatchText(
         text='O rato roeu a roupa do rei de roma 2. A roupa ficou esburacada',
         regex_match=r'\d..+', regex_sub='fim',
         markup_start='[', markup_end=']'
     )
     print(m.mark_match())
     print(m.mark_sub())
-

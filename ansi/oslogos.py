@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # https://github.com/w-a-gomes/systemutils
-import colors
-import osinfo
+import ansi
+from infos import osinfo
 
 
 class Logo(object):
@@ -87,7 +87,7 @@ class Logo(object):
 
         :return: String with logo as ANSI code
         """
-        color = colors.Color()
+        color = ansi.Color()
         blue = color.get_style(color='blue')
         blue_dark = color.get_style(color='blue', style='dark')
         blue_bold = color.get_style(color='blue', style='bold')

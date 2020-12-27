@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # https://github.com/w-a-gomes/systemutils
 import subprocess
-import file
+from files import file
 
 
 class ListFiles(object):
