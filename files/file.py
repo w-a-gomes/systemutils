@@ -11,9 +11,9 @@ class File(object):
     Extract information from a file, including "slice" the URL.
     """
 
-    def __init__(self, file_url: str, use_list_of_extensions: list = None):
+    def __init__(self, file_url: str, use_extensions_list: list = None):
         """Class constructor"""
-        self.extensions_list = use_list_of_extensions
+        self.extensions_list = use_extensions_list
         self.__is_directory = False
         self.__url = self.__resolve_url(file_url)      # Uses:
         self.__url_history = [self.__url]              # url
@@ -36,18 +36,23 @@ class File(object):
 
     def __resolve_url(self, arg: str) -> str:
         # Limpa a url dos arquivos
-        regex = re.findall(r'(file://|file:/|file:|file|//|/|)/.+', arg)
-        if regex:
-            clean_file = unquote(arg.replace(regex[0], ''))
-        else:
-            clean_file = unquote(arg)
+        url_file = unquote(arg.replace('file://', ''))
 
-        self.__is_directory = os.path.isdir(clean_file)
+        # Garantir que url sempre comece com apenas uma barra,
+        # porque a validação da url com os.path() não levanta erro
+        # em url com várias barras
+        if '//' in url_file:
+            while '//' in url_file:
+                url_file = url_file.replace('//', '/')
 
-        if not os.path.isfile(clean_file) and not self.__is_directory:
-            raise FileNotFoundError('The file in the past url does not exist', clean_file)
+        # Já valida a propriedade a ser usada abaixo (se é um diretório)
+        self.__is_directory = os.path.isdir(url_file)
 
-        return clean_file
+        # Validar URL
+        if not os.path.isfile(url_file) and not self.__is_directory:
+            raise FileNotFoundError('The file in the past url does not exist', url_file)
+
+        return url_file
 
     def get_path(self) -> str:
         """Get the file path
@@ -63,9 +68,7 @@ class File(object):
         return self.__path
 
     def __resolve_path(self) -> str:
-        regex = re.findall(r'/.+/', self.__url)
-        path = regex[0]
-        return path
+        return os.path.dirname(self.__url) + '/'
 
     def get_name(self) -> str:
         """Get the file name
@@ -301,8 +304,8 @@ class NameNotAllowedError(Error):
 if __name__ == '__main__':
     try:
         f = File(
-            file_url=os.path.dirname(os.path.abspath(__file__)) + '/README.md',
-            use_list_of_extensions=None
+            file_url=os.path.abspath(__file__),
+            use_extensions_list=None
         )
     except FileNotFoundError as error:
         print(error)

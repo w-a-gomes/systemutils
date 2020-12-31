@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # https://github.com/w-a-gomes/systemutils
-import subprocess
-from files import file
+import os
+
+import file
 
 
 class ListFiles(object):
@@ -41,7 +42,7 @@ class ListFiles(object):
         if self.__path[-1] != '/':
             self.__path += '/'
 
-        ls_path = subprocess.getoutput('ls "{}"'.format(self.__path)).split('\n')
+        ls_path = os.listdir()
         ls_items = list()
         for item in ls_path:
             ls_items.append(self.__path + item)
@@ -50,7 +51,14 @@ class ListFiles(object):
 
 
 if __name__ == '__main__':
-    files = ListFiles(subprocess.getoutput('pwd'))
+    files = ListFiles(os.path.dirname(os.path.abspath(__file__)))
     list_files = files.get_list()
+    n = 25
+    prefix = ' ' * n
+    print(('FILE' + prefix)[:n] + ('EXTENSION' + prefix)[:n] + ('DIRECTORY' + prefix)[:n])
     for f in list_files:
-        print(f.get_name() + f.get_extension(), f.get_extension(), f.is_directory())
+        print(
+            (f.get_name() + f.get_extension() + prefix)[:n] +
+            (f.get_extension() + prefix)[:n] +
+            (str(f.is_directory()) + prefix)[:n]
+        )
