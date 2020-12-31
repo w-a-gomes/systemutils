@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # https://github.com/w-a-gomes/systemutils
-import re
 import os
 from urllib.parse import unquote
 

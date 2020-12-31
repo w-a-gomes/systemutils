@@ -5,8 +5,8 @@ import os
 
 @pytest.fixture
 def readme():
-    path = os.path.dirname(os.path.abspath(__file__)).replace('files', 'README.md')
-    return file.File(file_url=path, use_list_of_extensions=None)
+    path = os.path.abspath(__file__).replace('files/test_file.py', 'README.md')
+    return file.File(file_url=path)
 
 
 def test_readme_name(readme):
@@ -23,8 +23,8 @@ def test_readme_is_dir(readme):
 
 @pytest.fixture
 def licenses():
-    path = os.path.dirname(os.path.abspath(__file__)).replace('files', 'LICENSE')
-    return file.File(file_url=path, use_list_of_extensions=None)
+    path = os.path.abspath(__file__).replace('files/test_file.py', 'LICENSE')
+    return file.File(file_url=path)
 
 
 def test_license_name(licenses):
@@ -42,7 +42,7 @@ def test_license_is_dir(licenses):
 @pytest.fixture
 def this_dir():
     path = os.path.dirname(os.path.abspath(__file__))
-    return file.File(file_url=path, use_list_of_extensions=None)
+    return file.File(file_url=path)
 
 
 def test_this_dir_name(this_dir):
@@ -77,7 +77,7 @@ def test_config_is_dir(config):
 
 @pytest.fixture
 def python3():
-    return file.File(file_url='/usr/bin/python3', use_list_of_extensions=None)
+    return file.File(file_url='/usr/bin/python3')
 
 
 def test_python3_url(python3):
