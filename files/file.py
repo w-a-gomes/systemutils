@@ -14,11 +14,11 @@ class File(object):
         """Class constructor"""
         self.extensions_list = use_extensions_list
         self.__is_directory = False
-        self.__url = self.__resolve_url(file_url)      # Uses:
-        self.__url_history = [self.__url]              # url
-        self.__path = self.__resolve_path()            # url
-        self.__extension = self.__resolve_extension()  # isdir, url, path
-        self.__name = self.__resolve_name()            # url, path, extension
+        self.__url = self.__resolve_url(file_url)  # isdir
+        self.__url_history = [self.__url]
+        self.__path = self.__resolve_path()
+        self.__extension = self.__resolve_extension()  # isdir, path
+        self.__name = self.__resolve_name()  # path, extension
 
     def get_url(self) -> str:
         """File URL
@@ -102,31 +102,28 @@ class File(object):
     def __resolve_extension(self) -> str:
         # Extrai somente a extensão do arquivo
 
+        # splitext não funciona para .tar*
         # >>> filename, file_extension = os.path.splitext("/home/user/Documentos/Documentos.tar.gz")
-        # >>> filename
-        # '/home/user/Documentos/Documentos.tar'
         # >>> file_extension
         # '.gz'
 
-        file_name = self.__url.replace(self.get_path(), '')
-
-        # Remover ponto no início do nome do arquivo para não afetar a
+        # Remover o ponto '.' no início do nome do arquivo para não afetar a
         # posterior divisão e comparação. Nada é alterado na extensão.
-        #
-        # O motivo deste tipo de validação, é que simplesmente percorrer a lista
-        # de extensões comparando-as com o fim do nome do arquivo, não produz o
-        # resultado esperado; porque um arquivo de nome '.txt' não pode ser
+        # O motivo deste tipo de validação, é que simplesmente "olhar" para
+        # o fim do nome do arquivo a partir do último ponto, não produz o
+        # resultado esperado, pois um arquivo de nome '.txt' não pode ser
         # reconhecido como um arquivo de nome vazio '' e extensão '.txt'
-        if file_name[0] == '.':
-            file_name = file_name.lstrip('.')
+        file_name = self.__url.replace(self.get_path(), '').lstrip('.')
 
         # Arquivos sem extensão
         condition = [
             # Sem extensão.
+            # Pontos '.' no início do nome do arquivo ja foram removidos
+            # para esta comparação.
             '.' not in file_name,
 
             # Arquivo terminado com um ponto, é também um arquivo sem extensão,
-            # pois um ponto (.) no fim faz parte do nome e pode ser renomeado,
+            # pois um ponto '.' no fim, faz parte do nome e pode ser renomeado,
             # i.e, não precisa ser retirado pois não é uma extensão.
             file_name[-1] == '.',
 
@@ -146,7 +143,7 @@ class File(object):
         if len(separate_at_dots) == 2:
             ext = '.' + separate_at_dots[-1]
 
-            # Verifica se a extensão existe
+            # Verifica se a extensão existe em uma lista de extensões
             if self.extensions_list:
                 if ext in self.extensions_list:
                     return ext
@@ -156,24 +153,19 @@ class File(object):
 
         # Lista sempre de 3 itens pra cima, representa arquivo que
         # tem mais de uma extensão, ou pontos no meio do nome.
-        # Verificar extensão interna (penúltimo item).
+        # Será verificado extensões internas (penúltimo item, como 'tar').
         # Futuramente, adicionar extensões internas aqui.
         if len(separate_at_dots) > 2:
             ext = '.' + separate_at_dots[-1]
 
-            # Verifica se a extensão existe
+            # Se existe extensão interna
+            if separate_at_dots[-2] == 'tar':
+                ext = '.' + separate_at_dots[-2] + ext
+
+            # Verifica se a extensão existe em uma lista de extensões
             if self.extensions_list:
                 if ext in self.extensions_list:
-
-                    # Se existe extensão interna
-                    if separate_at_dots[-2] == 'tar':
-                        return '.' + separate_at_dots[-2] + ext
-
-                    # Extensão normal
-                    else:
-                        return '.' + separate_at_dots[-1]
-
-                # Extensão não existe
+                    return ext
                 else:
                     return ''
 
@@ -238,18 +230,26 @@ class File(object):
         """
         extension = self.get_extension()
 
+        # Errors message
+        msg_length_error = (
+            'File name longer than 255 characters (including extension)')
+        msg_character_error = (
+            'Names cannot contain the / (slash) character')
+        msg_existing_name_error = (
+            'A file with that name "{}" already exists in the directory'.format(name + extension))
+        msg_name_not_allowed_error = (
+            'It is not possible to use one dot (.) or two dots (..) as a file name.')
+
         # Errors
         if len(name) + len(extension) > 255:
-            raise LengthError(message='File name longer than 255 characters (including extension)')
+            raise LengthError(message=msg_length_error)
         if '/' in name:
-            raise CharacterError(message='Names cannot contain the / (slash) character')
+            raise CharacterError(message=msg_character_error)
+        if name == '.' or name == '..':
+            raise NameNotAllowedError(message=msg_name_not_allowed_error)
         if name != self.get_name():
             if name + extension in os.listdir(self.get_path()):
-                raise ExistingNameError(
-                    message='A file with that name "{}" already exists in the directory'.format(name + extension)
-                )
-        if name == '.' or name == '..':
-            raise NameNotAllowedError(message='It is not possible to use one dot (.) or two dots (..) as a file name.')
+                raise ExistingNameError(message=msg_existing_name_error)
 
         # Updates
         self.__url = self.get_path() + name + extension
@@ -302,10 +302,7 @@ class NameNotAllowedError(Error):
 
 if __name__ == '__main__':
     try:
-        f = File(
-            file_url=os.path.abspath(__file__),
-            use_extensions_list=None
-        )
+        f = File(file_url=os.path.abspath(__file__))
     except FileNotFoundError as error:
         print(error)
     else:
