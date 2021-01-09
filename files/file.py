@@ -13,7 +13,6 @@ class File(object):
     def __init__(self, file_url: str, use_extensions_list: list = None):
         """Class constructor"""
         self.extensions_list = use_extensions_list
-        self.__is_directory = False
         self.__url = self.__resolve_url(file_url)  # isdir
         self.__url_history = [self.__url]
         self.__path = self.__resolve_path()
@@ -33,7 +32,8 @@ class File(object):
         """
         return self.__url
 
-    def __resolve_url(self, arg: str) -> str:
+    @staticmethod
+    def __resolve_url(arg: str) -> str:
         # Limpa a url dos arquivos
         url_file = unquote(arg.replace('file://', ''))
 
@@ -43,13 +43,6 @@ class File(object):
         if '//' in url_file:
             while '//' in url_file:
                 url_file = url_file.replace('//', '/')
-
-        # Já valida a propriedade a ser usada abaixo (se é um diretório)
-        self.__is_directory = os.path.isdir(url_file)
-
-        # Validar URL
-        if not os.path.isfile(url_file) and not self.__is_directory:
-            raise FileNotFoundError('The file in the past url does not exist', url_file)
 
         return url_file
 
@@ -126,9 +119,6 @@ class File(object):
             # pois um ponto '.' no fim, faz parte do nome e pode ser renomeado,
             # i.e, não precisa ser retirado pois não é uma extensão.
             file_name[-1] == '.',
-
-            # "Arquivos" que são na realidade diretórios, logicamente não retornam extensão.
-            self.is_directory()
         ]
         if any(condition):
             return ''
@@ -170,20 +160,6 @@ class File(object):
                     return ''
 
             return ext
-
-    def is_directory(self) -> bool:
-        """Checks whether a file is a directory
-
-        ›››file = File('/home/user/user name.txt')
-        ›››file.is_directory()
-        False
-        ›››file = File('/home/user/Downloads')
-        ›››file.is_directory()
-        True
-
-        :return: True or False
-        """
-        return self.__is_directory
 
     def get_url_history(self) -> list:
         """List with URL that has already been modified
@@ -229,106 +205,66 @@ class File(object):
         :param name: New name for the file
         """
         extension = self.get_extension()
-
-        # Errors message
-        msg_length_error = (
-            'File name longer than 255 characters (including extension)')
-        msg_character_error = (
-            'Names cannot contain the / (slash) character')
-        msg_existing_name_error = (
-            'A file with that name "{}" already exists in the directory'.format(name + extension))
-        msg_name_not_allowed_error = (
-            'It is not possible to use one dot (.) or two dots (..) as a file name.')
-
-        # Errors
-        if len(name) + len(extension) > 255:
-            raise LengthError(message=msg_length_error)
-        if '/' in name:
-            raise CharacterError(message=msg_character_error)
-        if name == '.' or name == '..':
-            raise NameNotAllowedError(message=msg_name_not_allowed_error)
-        if name != self.get_name():
-            if name + extension in os.listdir(self.get_path()):
-                raise ExistingNameError(message=msg_existing_name_error)
-
-        # Updates
         self.__url = self.get_path() + name + extension
         self.__url_history.append(self.__url)
         self.__name = name
 
 
-class Error(Exception):
-    """Base class for exceptions in this module."""
-    pass
+class ValidateFile(object):
+    def __init__(self, file: File):
+        self.__file = file
+        self.__error = dict()
+        self.__is_valid_file = self.__validate_file()
 
+    def is_valid_file(self) -> bool:
+        return self.__is_valid_file
 
-class LengthError(Error):
-    """Very long name
+    def get_error(self) -> dict:
+        return self.__error
 
-    Name greater than 255 characters (the extension is included in the sum)
-    """
-    def __init__(self, message):
-        self.message = message
+    def __validate_file(self) -> bool:
+        path = self.__file.get_path()
+        name = self.__file.get_name()
+        extension = self.__file.get_extension()
 
+        if '/' in name:
+            msg = 'Names cannot contain the / (slash) character'
+            self.__error['character-error'] = msg
+        if name + extension == '.' or name + extension == '..':
+            msg = 'It is not possible to use one dot (.) or two dots (..) as a filename'
+            self.__error['name-not-allowed-error'] = msg
+        if name + extension in os.listdir(path):
+            msg = 'A file with that name already exists in the directory'
+            self.__error['existing-name-error'] = msg
+        if len(name + extension) > 255:
+            msg = 'Filename longer than 255 characters (including extension)'
+            self.__error['length-error'] = msg
+        if name[0] == '.' and name + extension != '.' and name + extension != '..':
+            msg = 'Files that start with a dot (.) will be hidden'
+            self.__error['hidden-file-error'] = msg
 
-class CharacterError(Error):
-    """Characters not allowed.
-
-    Exception raised when characters that are not allowed in filenames are encountered.
-    The forward slash (/) is an example.
-    """
-    def __init__(self, message):
-        self.message = message
-
-
-class ExistingNameError(Error):
-    """Existing name
-
-    Exception raised when the file name already matches an existing file name in the directory.
-    """
-    def __init__(self, message):
-        self.message = message
-
-
-class NameNotAllowedError(Error):
-    """Name not allowed
-
-    Raises an exception when the file name is just one dot (.) or two dots (..),
-    as they are reserved names that point to directories.
-    """
-    def __init__(self, message):
-        self.message = message
+        return True if not self.__error else False
 
 
 if __name__ == '__main__':
-    try:
-        f = File(file_url=os.path.abspath(__file__))
-    except FileNotFoundError as error:
-        print(error)
-    else:
-        print('      url:', f.get_url())
-        print('     path:', f.get_path())
-        print('     name:', f.get_name())
-        print('extension:', f.get_extension())
-        print('   is dir:', f.is_directory())
-        print()
-        try:
-            f.set_name('.foo')
-        except LengthError as error:
-            print(error.message)
-        except CharacterError as error:
-            print(error.message)
-        except ExistingNameError as error:
-            print(error.message)
-        except NameNotAllowedError as error:
-            print(error.message)
-        print()
-        print('      url:', f.get_url())
-        print('     path:', f.get_path())
-        print('     name:', f.get_name())
-        print('extension:', f.get_extension())
-        print('   is dir:', f.is_directory())
-        print()
-        print('history:')
-        for item in f.get_url_history():
-            print(item)
+    f = File(file_url=os.path.abspath(__file__))
+    is_dir = os.path.isdir(f.get_url())
+    print('      url:', f.get_url())
+    print('     path:', f.get_path())
+    print('     name:', f.get_name())
+    print('extension:', '' if is_dir else f.get_extension())
+    print('   is dir:', is_dir)
+    print('  is link:', os.path.islink(f.get_url()))
+    print()
+    f.set_name('.foo')
+    v = ValidateFile(f)
+    if not v.is_valid_file():
+        for item_error, message in v.get_error().items():
+            print(message)
+    print()
+    print('     name:', f.get_name())
+    print('      url:', f.get_url())
+    print()
+    print('history:')
+    for item in f.get_url_history():
+        print(item)
