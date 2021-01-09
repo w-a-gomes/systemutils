@@ -17,10 +17,6 @@ def test_readme_extension(readme):
     assert readme.get_extension() == '.md'
 
 
-def test_readme_is_dir(readme):
-    assert not readme.is_directory()
-
-
 @pytest.fixture
 def licenses():
     path = os.path.abspath(__file__).replace('files/test_file.py', 'LICENSE')
@@ -33,10 +29,6 @@ def test_license_name(licenses):
 
 def test_license_extension(licenses):
     assert licenses.get_extension() == ''
-
-
-def test_license_is_dir(licenses):
-    assert not licenses.is_directory()
 
 
 @pytest.fixture
@@ -53,10 +45,6 @@ def test_this_dir_extension(this_dir):
     assert this_dir.get_extension() == ''
 
 
-def test_this_dir_is_dir(this_dir):
-    assert this_dir.is_directory()
-
-
 @pytest.fixture
 def config():
     path = os.getenv('HOME') + '/.config'
@@ -69,10 +57,6 @@ def test_config_name(config):
 
 def test_config_extension(config):
     assert config.get_extension() == ''
-
-
-def test_config_is_dir(config):
-    assert config.is_directory()
 
 
 @pytest.fixture
@@ -94,7 +78,3 @@ def test_python3_name(python3):
 
 def test_python3_extension(python3):
     assert python3.get_extension() == ''
-
-
-def test_python3_is_dir(python3):
-    assert not python3.is_directory()
