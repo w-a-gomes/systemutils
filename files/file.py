@@ -212,14 +212,63 @@ class File(object):
 
 class ValidateFile(object):
     def __init__(self, file: File):
+        """Create an object of type 'ValidateFile'
+
+        Validates if the file URL is valid, that is, if the file already
+        exists in the directory or if there are errors in the file name.
+
+        Use method 'is_valid_file' to see if the file is valid,
+        and 'get_error' to see what errors were found.
+
+        :param file: Object of type 'File'
+        """
         self.__file = file
         self.__error = dict()
         self.__is_valid_file = self.__validate_file()
 
     def is_valid_file(self) -> bool:
+        """Whether the file is valid
+
+        Returns 'True' for valid files or 'False' for invalid files.
+
+        :return: True or False
+        """
         return self.__is_valid_file
 
     def get_error(self) -> dict:
+        """Get a dictionary containing errors found in the file URL
+
+        The errors that can be found are:  # description of keys and values
+
+        ° character-error:
+            Names cannot contain the / (slash) character
+
+        ° name-not-allowed-error:
+            It is not possible to use one dot (.) or two dots (..) as a filename
+
+        ° existing-name-error:
+            A file with that name already exists in the directory
+
+        ° length-error:
+            Filename longer than 255 characters (including extension)
+
+        ° hidden-file-error:
+            Files that start with a dot (.) will be hidden
+
+        Ex:
+        ›››file = File('/home/user/user name.txt')
+        ›››file.set_name('.foo/bar')
+        ›››validate = ValidateFile(file)
+        ›››if not validate.is_valid_file():
+        ...    for item in validate.get_error().keys():
+        ...        print(item)
+        ...
+        character-error
+        hidden-file-error
+        ›››
+
+        :return: Dictionary containing errors
+        """
         return self.__error
 
     def __validate_file(self) -> bool:
@@ -256,11 +305,11 @@ if __name__ == '__main__':
     print('   is dir:', is_dir)
     print('  is link:', os.path.islink(f.get_url()))
     print()
-    f.set_name('.foo')
-    v = ValidateFile(f)
-    if not v.is_valid_file():
-        for item_error, message in v.get_error().items():
-            print(message)
+    f.set_name('.foo/bar')
+    validate = ValidateFile(f)
+    if not validate.is_valid_file():
+        for item in validate.get_error().keys():
+            print(item)
     print()
     print('     name:', f.get_name())
     print('      url:', f.get_url())
