@@ -53,11 +53,5 @@ class ListFiles(object):
 if __name__ == '__main__':
     files = ListFiles(os.path.dirname(os.path.abspath(__file__)))
     list_files = files.get_list()
-    n = 25
-    prefix = ' ' * n
-    print(('FILE' + prefix)[:n] + ('EXTENSION' + prefix)[:n])
     for f in list_files:
-        print(
-            (f.get_name() + f.get_extension() + prefix)[:n] +
-            '|' + (f.get_extension() + prefix)[:n]
-        )
+        print(f.get_name() + f.get_extension())
