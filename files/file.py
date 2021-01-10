@@ -8,10 +8,24 @@ class File(object):
     """Create an object of type 'File'
 
     Extract information from a file, including "slice" the URL.
+    A 'File' object will be able to extract the path, name
+    and extension of the file separately, as well as rename it
+    without changing the file extension or path.
     """
 
     def __init__(self, file_url: str, use_extensions_list: list = None):
-        """Class constructor"""
+        """Class constructor
+
+        A string in the format of a file URL must be provided in order to
+        generate the 'File' object.
+        If a list of file extensions is provided in parameter 'use_extensions_list',
+        that list will be used to compare whether the file extension
+        exists within it, otherwise a pure logic algorithm will be
+        used to determine the extension.
+
+        :param file_url: String in the format of a file URL-> "/home/user/foo.txt"
+        :param use_extensions_list: List of file extensions-> [".txt", ".mkv", ".png"]
+        """
         self.extensions_list = use_extensions_list
         self.__url = self.__resolve_url(file_url)  # isdir
         self.__url_history = [self.__url]
@@ -24,8 +38,8 @@ class File(object):
 
         Get the updated file url and cleanly.
 
-        ›››file = File('/home/user/user name.txt')
-        ›››file.get_url()
+        ››› file = File('/home/user/user name.txt')
+        ››› file.get_url()
         /home/user/user name.txt
 
         :return: URL
@@ -51,8 +65,8 @@ class File(object):
 
         Only the working path of the file, without its name and extension.
 
-        ›››file = File('/home/user/user name.txt')
-        ›››file.get_path()
+        ››› file = File('/home/user/user name.txt')
+        ››› file.get_path()
         /home/user/
 
         :return: String containing the working URL of the file
@@ -67,8 +81,8 @@ class File(object):
 
         Only the clean name, without the working path or file extension.
 
-        ›››file = File('/home/user/user name.txt')
-        ›››file.get_name()
+        ››› file = File('/home/user/user name.txt')
+        ››› file.get_name()
         user name
 
         :return: String containing the file name
@@ -84,8 +98,8 @@ class File(object):
 
         Only the file extension without your name.
 
-        ›››file = File('/home/user/user name.txt')
-        ›››file.get_extension()
+        ››› file = File('/home/user/user name.txt')
+        ››› file.get_extension()
         .txt
 
         :return: String containing the file extension
@@ -166,16 +180,16 @@ class File(object):
 
         When a file name is changed, it is saved in a history for later comparison.
 
-        ›››file = File('/home/user/user name.txt')
-        ›››file.get_url_history()
+        ››› file = File('/home/user/user name.txt')
+        ››› file.get_url_history()
         ['/home/user/user name.txt']
-        ›››file.set_name('foo')
-        ›››file.get_url()
+        ››› file.set_name('foo')
+        ››› file.get_url()
         /home/user/foo.txt
-        ›››file.set_name('bar')
-        ›››file.get_url()
+        ››› file.set_name('bar')
+        ››› file.get_url()
         /home/user/bar.txt
-        ›››file.get_url_history()
+        ››› file.get_url_history()
         ['/home/user/user name.txt', '/home/user/foo.txt', '/home/user/bar.txt']
 
         :return: List with URL
@@ -185,21 +199,13 @@ class File(object):
     def set_name(self, name: str) -> None:
         """Sets a new name for the file
 
-        If the name passed cannot be used for any reason, an exception is raised.
-
-        Exceptions:
-          LengthError: Name greater than 255 characters (the extension is included in the sum)
-          CharacterError: Characters not allowed, such as the slash (/)
-          ExistingNameError: Name that already exists in some file in the directory
-          NameNotAllowedError: 
-
-        ›››file = File('/home/user/user name.txt')
-        ›››file.get_name()
+        ››› file = File('/home/user/user name.txt')
+        ››› file.get_name()
         user name
-        ›››file.set_name('foobar')
-        ›››file.get_name()
+        ››› file.set_name('foobar')
+        ››› file.get_name()
         foobar
-        ›››file.get_url()
+        ››› file.get_url()
         /home/user/foobar.txt
 
         :param name: New name for the file
@@ -238,30 +244,29 @@ class ValidateFile(object):
     def get_error(self) -> dict:
         """Get a dictionary containing errors found in the file URL
 
-        The errors that can be found are:  # description of keys and values
+        The errors that can be found are:
 
         ° character-error:
-            Names cannot contain the / (slash) character
-
+            Characters that cannot exist in filenames,
+            such as the slash (/)
         ° name-not-allowed-error:
-            It is not possible to use one dot (.) or two dots (..) as a filename
-
+            Filenames, including the extension, that cannot
+            be used, such as one (.) or two (..) dots
         ° existing-name-error:
-            A file with that name already exists in the directory
-
+            When a file with the same name and extension
+            already exists in the directory
         ° length-error:
-            Filename longer than 255 characters (including extension)
-
+            Very long file names, longer than 255 characters
         ° hidden-file-error:
             Files that start with a dot (.) will be hidden
 
         Ex:
-        ›››file = File('/home/user/user name.txt')
-        ›››file.set_name('.foo/bar')
-        ›››validate = ValidateFile(file)
-        ›››if not validate.is_valid_file():
-        ...    for item in validate.get_error().keys():
-        ...        print(item)
+        ››› file = File('/home/user/user name.txt')
+        ››› file.set_name('.foo/bar')
+        ››› validate = ValidateFile(file)
+        ››› if not validate.is_valid_file():
+        ...     for error_keys in validate.get_error().keys():
+        ...         print(error_keys)
         ...
         character-error
         hidden-file-error
@@ -305,15 +310,15 @@ if __name__ == '__main__':
     print('   is dir:', is_dir)
     print('  is link:', os.path.islink(f.get_url()))
     print()
-    f.set_name('.foo/bar')
+    f.set_name('.foo')
     validate = ValidateFile(f)
     if not validate.is_valid_file():
-        for item in validate.get_error().keys():
-            print(item)
+        for error_keys, value_error in validate.get_error().items():
+            print('[' + error_keys + '] ' + value_error)
     print()
     print('     name:', f.get_name())
     print('      url:', f.get_url())
     print()
     print('history:')
-    for item in f.get_url_history():
-        print(item)
+    for url_item in f.get_url_history():
+        print(url_item)
