@@ -27,11 +27,12 @@ class File(object):
         :param use_extensions_list: List of file extensions-> [".txt", ".mkv", ".png"]
         """
         self.extensions_list = use_extensions_list
-        self.__url = self.__resolve_url(file_url)  # isdir
-        self.__url_history = [self.__url]
-        self.__path = self.__resolve_path()
-        self.__extension = self.__resolve_extension()  # isdir, path
-        self.__name = self.__resolve_name()  # path, extension
+        self.__url = unquote(r'{}'.format(file_url.replace('file://', '')))
+        self.__path = '{}{}'.format(os.path.dirname(self.__url), os.sep)
+        self.__extension = self.__resolve_extension()  # need path
+        self.__name = self.__url.replace(self.__path, '').replace(self.__extension, '')
+        self.__original_name = self.__name
+        self.__note = None
 
     def get_url(self) -> str:
         """File URL
@@ -46,20 +47,6 @@ class File(object):
         """
         return self.__url
 
-    @staticmethod
-    def __resolve_url(arg: str) -> str:
-        # Limpa a url dos arquivos
-        url_file = unquote(arg.replace('file://', ''))
-
-        # Garantir que url sempre comece com apenas uma barra,
-        # porque a validação da url com os.path() não levanta erro
-        # em url com várias barras
-        if '//' in url_file:
-            while '//' in url_file:
-                url_file = url_file.replace('//', '/')
-
-        return url_file
-
     def get_path(self) -> str:
         """Get the file path
 
@@ -73,9 +60,6 @@ class File(object):
         """
         return self.__path
 
-    def __resolve_path(self) -> str:
-        return os.path.dirname(self.__url) + '/'
-
     def get_name(self) -> str:
         """Get the file name
 
@@ -88,10 +72,6 @@ class File(object):
         :return: String containing the file name
         """
         return self.__name
-
-    def __resolve_name(self) -> str:
-        name = self.__url.replace(self.get_path(), '').replace(self.get_extension(), '')
-        return name
 
     def get_extension(self) -> str:
         """Get the file extension
@@ -120,7 +100,7 @@ class File(object):
         # o fim do nome do arquivo a partir do último ponto, não produz o
         # resultado esperado, pois um arquivo de nome '.txt' não pode ser
         # reconhecido como um arquivo de nome vazio '' e extensão '.txt'
-        file_name = self.__url.replace(self.get_path(), '').lstrip('.')
+        file_name = self.__url.replace(self.__path, '').lstrip('.')
 
         # Arquivos sem extensão
         condition = [
@@ -175,26 +155,24 @@ class File(object):
 
             return ext
 
-    def get_url_history(self) -> list:
-        """List with URL that has already been modified
-
-        When a file name is changed, it is saved in a history for later comparison.
+    def get_original_name(self) -> str:
+        """
 
         ››› file = File('/home/user/user name.txt')
-        ››› file.get_url_history()
-        ['/home/user/user name.txt']
+        ››› file.get_url()
+        /home/user/user name.txt
         ››› file.set_name('foo')
         ››› file.get_url()
         /home/user/foo.txt
         ››› file.set_name('bar')
         ››› file.get_url()
         /home/user/bar.txt
-        ››› file.get_url_history()
-        ['/home/user/user name.txt', '/home/user/foo.txt', '/home/user/bar.txt']
+        ››› file.get_original_name()
+        user name
 
         :return: List with URL
         """
-        return self.__url_history
+        return self.__original_name
 
     def set_name(self, name: str) -> None:
         """Sets a new name for the file
@@ -210,115 +188,27 @@ class File(object):
 
         :param name: New name for the file
         """
-        extension = self.get_extension()
-        self.__url = self.get_path() + name + extension
-        self.__url_history.append(self.__url)
+        self.__url = self.__path + name + self.__extension
         self.__name = name
 
+    def get_note(self):
+        return self.__note
 
-class ValidateFile(object):
-    def __init__(self, file: File):
-        """Create an object of type 'ValidateFile'
-
-        Validates if the file URL is valid, that is, if the file already
-        exists in the directory or if there are errors in the file name.
-
-        Use method 'is_valid_file' to see if the file is valid,
-        and 'get_error' to see what errors were found.
-
-        :param file: Object of type 'File'
-        """
-        self.__file = file
-        self.__error = dict()
-        self.__is_valid_file = self.__validate_file()
-
-    def is_valid_file(self) -> bool:
-        """Whether the file is valid
-
-        Returns 'True' for valid files or 'False' for invalid files.
-
-        :return: True or False
-        """
-        return self.__is_valid_file
-
-    def get_error(self) -> dict:
-        """Get a dictionary containing errors found in the file URL
-
-        The errors that can be found are:
-
-        ° character-error:
-            Characters that cannot exist in filenames,
-            such as the slash (/)
-        ° name-not-allowed-error:
-            Filenames, including the extension, that cannot
-            be used, such as one (.) or two (..) dots
-        ° existing-name-error:
-            When a file with the same name and extension
-            already exists in the directory
-        ° length-error:
-            Very long file names, longer than 255 characters
-        ° hidden-file-error:
-            Files that start with a dot (.) will be hidden
-
-        Ex:
-        ››› file = File('/home/user/user name.txt')
-        ››› file.set_name('.foo/bar')
-        ››› validate = ValidateFile(file)
-        ››› if not validate.is_valid_file():
-        ...     for error_keys in validate.get_error().keys():
-        ...         print(error_keys)
-        ...
-        character-error
-        hidden-file-error
-        ›››
-
-        :return: Dictionary containing errors
-        """
-        return self.__error
-
-    def __validate_file(self) -> bool:
-        path = self.__file.get_path()
-        name = self.__file.get_name()
-        extension = self.__file.get_extension()
-
-        if '/' in name:
-            msg = 'Names cannot contain the / (slash) character'
-            self.__error['character-error'] = msg
-        if name + extension == '.' or name + extension == '..':
-            msg = 'It is not possible to use one dot (.) or two dots (..) as a filename'
-            self.__error['name-not-allowed-error'] = msg
-        if name + extension in os.listdir(path):
-            msg = 'A file with that name already exists in the directory'
-            self.__error['existing-name-error'] = msg
-        if len(name + extension) > 255:
-            msg = 'Filename longer than 255 characters (including extension)'
-            self.__error['length-error'] = msg
-        if name[0] == '.' and name + extension != '.' and name + extension != '..':
-            msg = 'Files that start with a dot (.) will be hidden'
-            self.__error['hidden-file-error'] = msg
-
-        return True if not self.__error else False
+    def set_note(self, note: str):
+        self.__note = note
 
 
 if __name__ == '__main__':
     f = File(file_url=os.path.abspath(__file__))
-    is_dir = os.path.isdir(f.get_url())
     print('      url:', f.get_url())
     print('     path:', f.get_path())
     print('     name:', f.get_name())
-    print('extension:', '' if is_dir else f.get_extension())
-    print('   is dir:', is_dir)
+    print('extension:', '' if os.path.isdir(f.get_url()) else f.get_extension())
+    print('   is dir:', os.path.isdir(f.get_url()))
     print('  is link:', os.path.islink(f.get_url()))
     print()
     f.set_name('.foo')
-    validate = ValidateFile(f)
-    if not validate.is_valid_file():
-        for error_keys, value_error in validate.get_error().items():
-            print('[' + error_keys + '] ' + value_error)
     print()
     print('     name:', f.get_name())
     print('      url:', f.get_url())
     print()
-    print('history:')
-    for url_item in f.get_url_history():
-        print(url_item)
