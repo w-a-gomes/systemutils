@@ -316,8 +316,8 @@ class OsInfo(object):
         """
         if self.__cpu:
             return self.__cpu
-        self.__cpu = subprocess.getoutput(
-            "cat /proc/cpuinfo | grep 'model name' | sed -n 1p | sed 's/.*:.//g;s/(.*)//g'")
+        cmd = "cat /proc/cpuinfo | grep 'model name' | sed -n 1p | sed 's/.*:.//g;s/(\w*)//g'"
+        self.__cpu = subprocess.getoutput(cmd)
         return self.__cpu
 
     def get_gpu(self) -> str:
@@ -328,37 +328,54 @@ class OsInfo(object):
         if self.__gpu:
             return self.__gpu
 
-        gpu_id = subprocess.getoutput("lspci |grep -i graphics|awk '{ print $1 }'")
-        gpu_label = str()
-
-        if gpu_id.replace(':', '').replace('.', '').isdigit():
-            gpu_label = subprocess.getoutput(
-                'cat "/sys/bus/pci/devices/0000:{}/label"'.format(gpu_id)).strip()
-            if 'cat: ' in gpu_label:
-                gpu_label = ''
-
-        gpu_read = subprocess.getoutput('lspci | grep VGA')
-        if 'lspci:' in gpu_read or '/bin/sh:' in gpu_read:
-            return gpu_label
-
-        regex = re.findall(r'.+: (.+)', gpu_read)
         gpu = str()
-        if regex:
-            gpu = regex[0]
+        found = False
 
-        regex_to_remove = re.findall(r'\(.+\)', gpu_read)
-        if regex_to_remove:
-            gpu = gpu.replace(regex_to_remove[0], '')
+        # 1° method
+        gpu_read = subprocess.getoutput('lspci | grep 3D')
+        if 'lspci:' not in gpu_read and '/bin/sh:' not in gpu_read and gpu_read:
+            regex = re.findall(r'^.+: (.+) \(rev .+$', gpu_read)
+            if regex:
+                gpu = regex[0]
+                found = True
 
-        if 'intel' in gpu.lower():
-            dirt_to_clean = ['Corporation', 'Core Processor', 'Integrated Graphics Controller']
-            for i in dirt_to_clean:
-                gpu = gpu.replace(i, '')
+        # 2° method
+        if not found:
+            board = str()
+            id_cmd = "lspci |grep -i graphics| awk '{ print $1 }'"
+            gpu_id = subprocess.getoutput(id_cmd)
+            if gpu_id.replace(':', '').replace('.', '').isdigit():
+                gpu_cmd = 'cat "/sys/bus/pci/devices/0000:{}/label"'.format(gpu_id)
+                gpu_board = subprocess.getoutput(gpu_cmd).strip()
+                board = gpu_board if 'cat: ' not in gpu_read else board
 
-        if 'virtualbox' in gpu.lower():
-            gpu = 'VirtualBox Graphics Adapter'
+            gpu_read = subprocess.getoutput('lspci | grep VGA')
+            if 'lspci:' in gpu_read or '/bin/sh:' in gpu_read:
+                gpu_read = board
 
-        self.__gpu = '{}{}'.format(gpu.replace('  ', ' '), gpu_label).strip()
+            regex = re.findall(r'.+: (.+)', gpu_read)
+            remove = re.findall(r'\(.+\)', gpu_read)
+            if regex:
+                gpu_read = regex[0]
+            if remove:
+                gpu = gpu_read.replace(remove[0], '')
+
+            gpu += board
+            found = True
+
+        # Clear
+        if found:
+            if 'intel' in gpu.lower():
+                dirt = ['Corporation', 'Core Processor', 'Integrated Graphics Controller']
+                for i in dirt:
+                    gpu = gpu.replace(i, '')
+
+            if 'virtualbox' in gpu.lower():
+                gpu = 'VirtualBox Graphics Adapter'
+        else:
+            gpu = ''
+
+        self.__gpu = gpu.replace('  ', ' ')
         return self.__gpu
 
     def get_ram(self) -> str:
